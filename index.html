@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="pageTitle">Professional Photographer | Yolo Photography</title>
+    <meta id="metaDescription" name="description" content="Professional Photographer for weddings, portraits, events, destination celebrations, and high-end brand photography." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --accent-color: #334155;
+        --accent-soft: rgba(51, 65, 85, 0.1);
+        --on-accent: #ffffff;
+      }
+
+      .accent-primary {
+        color: var(--accent-color);
+      }
+
+      .accent-bg {
+        background-color: var(--accent-color);
+        color: var(--on-accent) !important;
+      }
+
+      .accent-border {
+        border-color: var(--accent-color);
+      }
+
+      .accent-hover:hover {
+        background-color: var(--accent-color);
+      }
+
+      #socialInstagram,
+      #footerInstagram {
+        color: #ffffff;
+      }
+
+      #footerInstagram {
+        color: currentColor;
+      }
+
+      #socialInstagram svg,
+      #footerInstagram svg {
+        display: none;
+      }
+
+      #socialInstagram::before,
+      #footerInstagram::before {
+        content: '';
+        display: block;
+        width: 22px;
+        height: 22px;
+        background: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='20' x='2' y='2' rx='5' ry='5'/%3E%3Cpath d='M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z'/%3E%3Cpath d='M17.5 6.5h.01'/%3E%3C/svg%3E") center / contain no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='20' x='2' y='2' rx='5' ry='5'/%3E%3Cpath d='M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z'/%3E%3Cpath d='M17.5 6.5h.01'/%3E%3C/svg%3E") center / contain no-repeat;
+      }
+
+      .hero-bg {
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3)),
+          url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect fill="%23111827" width="1200" height="600"/></svg>');
+        background-size: cover;
+        background-position: center;
+      }
+
+      .filter-btn {
+        transition: all 0.3s ease;
+      }
+
+      .filter-btn.active {
+        background-color: var(--accent-color);
+        color: var(--on-accent);
+      }
+
+      .gallery-item {
+        position: relative;
+        aspect-ratio: 1;
+        overflow: hidden;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+
+      .gallery-item:hover {
+        transform: scale(1.05);
+      }
+
+      .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .gallery-watermark {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        pointer-events: none;
+        background: rgba(15, 23, 42, 0.04);
+      }
+
+      .gallery-watermark img {
+        width: min(42%, 180px);
+        height: auto;
+        max-height: 86px;
+        object-fit: contain;
+        opacity: 0.35;
+        filter: grayscale(1);
+      }
+
+      .service-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .service-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      }
+
+      .scroll-smooth {
+        scroll-behavior: smooth;
+      }
+
+      .whatsapp-float {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: #25d366;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+      }
+
+      .whatsapp-float:hover {
+        transform: scale(1.1);
+      }
+
+      .booking-form {
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        margin: 0 auto;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+
+      /* Dark Mode */
+      [data-theme="dark"] {
+        --bg-primary: #1f2937;
+        --bg-secondary: #111827;
+        --text-primary: #f9fafb;
+        --text-secondary: #d1d5db;
+        --border-color: #374151;
+      }
+
+      [data-theme="dark"] body {
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+      }
+
+      [data-theme="dark"] .hero-bg {
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
+          url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect fill="%23111227" width="1200" height="600"/></svg>');
+      }
+
+      [data-theme="dark"] nav {
+        background-color: var(--bg-secondary);
+        border-color: var(--border-color);
+      }
+
+      [data-theme="dark"] .service-card {
+        background-color: var(--bg-secondary);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+      }
+
+      [data-theme="dark"] .booking-form {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+      }
+
+      [data-theme="dark"] .form-group label {
+        color: var(--text-primary);
+      }
+
+      [data-theme="dark"] .form-group input,
+      [data-theme="dark"] .form-group select {
+        background-color: var(--bg-primary);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+      }
+
+      [data-theme="dark"] footer {
+        background-color: var(--bg-secondary);
+      }
+    </style>
+  </head>
+  <body class="bg-white text-gray-900 scroll-smooth">
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex items-center gap-3">
+            <img
+              id="navLogo"
+              src=""
+              alt="Yolo Photography"
+              class="h-10 object-contain"
+              style="display: none;"
+            />
+            <span id="navBrand" class="text-xl font-semibold text-gray-900">Yolo Photography</span>
+          </div>
+
+          <!-- Desktop Menu -->
+          <div class="hidden md:flex gap-8">
+            <a href="#gallery" class="text-sm font-medium transition hover:accent-primary">Portfolio</a>
+            <a href="#services" class="text-sm font-medium transition hover:accent-primary">Services</a>
+            <a href="#contact" class="text-sm font-medium transition hover:accent-primary">Contact</a>
+            <a href="#booking" class="text-sm font-medium transition hover:accent-primary">Book Now</a>
+            <a href="/admin" class="text-sm font-medium transition hover:accent-primary">Admin</a>
+          </div>
+
+          <!-- Theme Toggle & Mobile Menu -->
+          <div class="flex items-center gap-4">
+            <button id="themeToggle" class="p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+            </button>
+
+            <!-- Mobile Menu Button -->
+            <button id="mobileMenuButton" class="md:hidden p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden md:hidden pb-4">
+          <div class="flex flex-col gap-4 pt-4 border-t border-gray-200">
+            <a href="#gallery" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition" onclick="closeMobileMenu()">Portfolio</a>
+            <a href="#services" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition" onclick="closeMobileMenu()">Services</a>
+            <a href="#contact" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition" onclick="closeMobileMenu()">Contact</a>
+            <a href="#booking" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition" onclick="closeMobileMenu()">Book Now</a>
+            <a href="/admin" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition" onclick="closeMobileMenu()">Admin</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg min-h-screen flex items-center justify-center text-center text-white relative">
+      <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-transparent"></div>
+      <div class="relative z-10 max-w-3xl mx-auto px-4">
+        <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">Professional Photography for Weddings, Portraits, and Events</h1>
+        <p class="text-lg md:text-xl text-gray-200 mb-10 max-w-2xl mx-auto">
+          High-end photography that feels effortless, editorial, and unforgettable. Every frame tells your unique story, wherever you are.
+        </p>
+        <button
+          onclick="document.getElementById('gallery').scrollIntoView({behavior: 'smooth'})"
+          class="accent-bg hover:opacity-90 text-gray-900 px-8 py-4 rounded-full font-semibold text-lg transition"
+        >
+          Book a Session
+        </button>
+      </div>
+    </section>
+
+    <!-- Portfolio Gallery -->
+    <section id="gallery" class="py-20 bg-gray-50">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm uppercase tracking-widest text-gray-600 mb-3">Our Work</p>
+          <h2 class="text-4xl md:text-5xl font-bold mb-6">Portfolio</h2>
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+            Curated imagery showcasing our finest editorial work across wedding, studio, and lifestyle photography.
+          </p>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="flex flex-wrap justify-center gap-3 mb-12">
+          <button
+            class="filter-btn active px-6 py-2 rounded-full border border-gray-300 text-sm font-medium"
+            onclick="filterGallery('All', this)"
+          >
+            All
+          </button>
+          <button
+            class="filter-btn px-6 py-2 rounded-full border border-gray-300 text-sm font-medium"
+            onclick="filterGallery('Wedding', this)"
+          >
+            Wedding
+          </button>
+          <button
+            class="filter-btn px-6 py-2 rounded-full border border-gray-300 text-sm font-medium"
+            onclick="filterGallery('Ruracio', this)"
+          >
+            Ruracio
+          </button>
+          <button
+            class="filter-btn px-6 py-2 rounded-full border border-gray-300 text-sm font-medium"
+            onclick="filterGallery('Studio', this)"
+          >
+            Studio
+          </button>
+        </div>
+
+        <!-- Gallery Grid -->
+        <div id="galleryGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="col-span-full text-center py-16">
+            <p class="text-gray-500">Loading portfolio images...</p>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden col-span-full text-center py-16">
+          <p class="text-gray-500 text-lg">No images found in this category.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="py-20 bg-white">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm uppercase tracking-widest text-gray-600 mb-3">What We Offer</p>
+          <h2 class="text-4xl md:text-5xl font-bold mb-6">Our Services</h2>
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+            A full range of photography services tailored to your vision and budget.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Services will be loaded dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 bg-gray-900 text-white">
+      <div class="max-w-4xl mx-auto px-4">
+        <div class="text-center mb-12">
+          <p class="text-sm uppercase tracking-widest text-gray-400 mb-3">Connect</p>
+          <h2 class="text-4xl md:text-5xl font-bold mb-6">Let's Create Something Beautiful</h2>
+          <p class="text-lg text-gray-300 mb-10">
+            Reach out to discuss your project, get a custom quote, or book your session today.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-12">
+          <div>
+            <h3 class="text-2xl font-semibold mb-6">Get in Touch</h3>
+            <div class="space-y-4">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-accent-bg rounded-full flex items-center justify-center">
+                  📞
+                </div>
+                <div>
+                  <p class="font-semibold">Phone</p>
+                  <p id="contactPhone" class="text-gray-300">Loading...</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-accent-bg rounded-full flex items-center justify-center">
+                  ✉️
+                </div>
+                <div>
+                  <p class="font-semibold">Email</p>
+                  <p id="contactEmail" class="text-gray-300">Loading...</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-accent-bg rounded-full flex items-center justify-center">
+                  📍
+                </div>
+                <div>
+                  <p class="font-semibold">Location</p>
+                  <p id="contactLocation" class="text-gray-300">Loading...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-2xl font-semibold mb-6">Follow Us</h3>
+            <div class="flex gap-4 mb-8">
+              <a id="socialFacebook" href="#" target="_blank" class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              </a>
+              <a id="socialInstagram" href="#" target="_blank" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 transition">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M12.017 0C8.396 0 7.909.016 6.695.072 5.48.128 4.66.267 3.967.51c-.732.258-1.354.6-1.967 1.213C1.387 2.336 1.045 2.958.787 3.69.544 4.383.405 5.203.349 6.418.293 7.632.277 8.119.277 11.74v.529c0 3.621.016 4.108.072 5.322.056 1.215.195 2.035.438 2.728.258.732.6 1.354 1.213 1.967.613.613 1.235.955 1.967 1.213.693.243 1.513.382 2.728.438 1.214.056 1.701.072 5.322.072h.529c3.621 0 4.108-.016 5.322-.072 1.215-.056 2.035-.195 2.728-.438.732-.258 1.354-.6 1.967-1.213.613-.613.955-1.235 1.213-1.967.243-.693.382-1.513.438-2.728.056-1.214.072-1.701.072-5.322v-.529c0-3.621-.016-4.108-.072-5.322-.056-1.215-.195-2.035-.438-2.728-.258-.732-.6-1.354-1.213-1.967C21.664 1.387 21.042.955 20.31.697 19.617.454 18.797.315 17.582.259 16.368.203 15.881.187 12.26.187h-.529c-3.621 0-4.108.016-5.322.072C5.203.315 4.383.454 3.69.697 2.958.955 2.336 1.387 1.723 2c-.613.613-.955 1.235-1.213 1.967C.315 5.66.176 6.48.12 7.695.064 8.909.048 9.396.048 13.017v.529c0 3.621.016 4.108.072 5.322.056 1.215.195 2.035.438 2.728.258.732.6 1.354 1.213 1.967.613.613 1.235.955 1.967 1.213.693.243 1.513.382 2.728.438 1.214.056 1.701.072 5.322.072h.529c3.621 0 4.108-.016 5.322-.072 1.215-.056 2.035-.195 2.728-.438.732-.258 1.354-.6 1.967-1.213.613-.613.955-1.235 1.213-1.967.243-.693.382-1.513.438-2.728.056-1.214.072-1.701.072-5.322v-.529c0-3.621-.016-4.108-.072-5.322-.056-1.215-.195-2.035-.438-2.728-.258-.732-.6-1.354-1.213-1.967C22.336 1.387 21.714.955 20.982.697 20.289.454 19.469.315 18.254.259 17.04.203 16.553.187 12.932.187h-.529c-3.621 0-4.108.016-5.322.072C6.717.315 5.897.454 5.204.697 4.472.955 3.85 1.387 3.237 2c-.613.613-.955 1.235-1.213 1.967C1.315 5.66 1.176 6.48 1.12 7.695.064 8.909.048 9.396.048 13.017v.529zM12.017 5.84c-3.527 0-6.39 2.863-6.39 6.39s2.863 6.39 6.39 6.39 6.39-2.863 6.39-6.39-2.863-6.39-6.39-6.39zm0 10.566c-2.302 0-4.166-1.864-4.166-4.166s1.864-4.166 4.166-4.166 4.166 1.864 4.166 4.166-1.864 4.166-4.166 4.166zm6.406-11.845c-.796 0-1.441.645-1.441 1.441s.645 1.441 1.441 1.441 1.441-.645 1.441-1.441-.645-1.441-1.441-1.441z"/>
+                </svg>
+              </a>
+              <a id="socialTikTok" href="#" target="_blank" class="w-12 h-12 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                </svg>
+              </a>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-4">
+              <a
+                href="mailto:hello@yolophotography.com"
+                class="accent-bg hover:opacity-90 text-gray-900 px-8 py-4 rounded-full font-semibold transition"
+              >
+                Send an Email
+              </a>
+              <a
+                href="#contact"
+                target="_blank"
+                class="bg-white hover:bg-gray-100 text-gray-900 px-8 py-4 rounded-full font-semibold transition"
+              >
+                WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Booking Section -->
+    <section id="booking" class="py-20 bg-slate-50">
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl font-bold text-slate-900 mb-4">Book Your Session</h2>
+          <p class="text-xl text-slate-600 max-w-2xl mx-auto">
+            Ready to capture your special moments? Let's create something beautiful together.
+          </p>
+        </div>
+
+        <div class="booking-form">
+          <form id="bookingForm">
+            <div class="form-group">
+              <label for="clientName">Full Name</label>
+              <input type="text" id="clientName" name="clientName" required />
+            </div>
+
+            <div class="form-group">
+              <label for="clientPhone">Phone Number</label>
+              <input type="tel" id="clientPhone" name="clientPhone" required />
+            </div>
+
+            <div class="form-group">
+              <label for="eventDate">Event Date</label>
+              <input type="date" id="eventDate" name="eventDate" required />
+            </div>
+
+            <div class="form-group">
+              <label for="serviceType">Service Type</label>
+              <select id="serviceType" name="serviceType" required>
+                <option value="">Select a service</option>
+                <option value="Wedding Photography">Wedding Photography</option>
+                <option value="Portrait Session">Portrait Session</option>
+                <option value="Event Coverage">Event Coverage</option>
+                <option value="Family Photos">Family Photos</option>
+                <option value="Corporate Headshots">Corporate Headshots</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="eventLocation">Event Location</label>
+              <input type="text" id="eventLocation" name="eventLocation" placeholder="City, Country" required />
+            </div>
+
+            <button type="submit" class="w-full bg-slate-900 text-white py-4 px-8 rounded-lg font-semibold hover:bg-slate-800 transition-colors duration-300">
+              Send Booking Request
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-950 text-gray-400 py-12">
+      <div class="max-w-6xl mx-auto px-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="mb-4 md:mb-0">
+            <p>&copy; 2026 Yolo Photography. All Rights Reserved. | Powered by Destine Creations</p>
+          </div>
+          <div class="flex gap-4">
+            <a id="footerFacebook" href="#" target="_blank" class="hover:text-white transition">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </a>
+            <a id="footerInstagram" href="#" target="_blank" class="hover:text-white transition">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.017 0C8.396 0 7.909.016 6.695.072 5.48.128 4.66.267 3.967.51c-.732.258-1.354.6-1.967 1.213C1.387 2.336 1.045 2.958.787 3.69.544 4.383.405 5.203.349 6.418.293 7.632.277 8.119.277 11.74v.529c0 3.621.016 4.108.072 5.322.056 1.215.195 2.035.438 2.728.258.732.6 1.354 1.213 1.967.613.613 1.235.955 1.967 1.213.693.243 1.513.382 2.728.438 1.214.056 1.701.072 5.322.072h.529c3.621 0 4.108-.016 5.322-.072 1.215-.056 2.035-.195 2.728-.438.732-.258 1.354-.6 1.967-1.213.613-.613.955-1.235 1.213-1.967.243-.693.382-1.513.438-2.728.056-1.214.072-1.701.072-5.322v-.529c0-3.621-.016-4.108-.072-5.322-.056-1.215-.195-2.035-.438-2.728-.258-.732-.6-1.354-1.213-1.967C21.664 1.387 21.042.955 20.31.697 19.617.454 18.797.315 17.582.259 16.368.203 15.881.187 12.26.187h-.529c-3.621 0-4.108.016-5.322.072C5.203.315 4.383.454 3.69.697 2.958.955 2.336 1.387 1.723 2c-.613.613-.955 1.235-1.213 1.967C.315 5.66.176 6.48.12 7.695.064 8.909.048 9.396.048 13.017v.529c0 3.621.016 4.108.072 5.322.056 1.215.195 2.035.438 2.728.258.732.6 1.354 1.213 1.967.613.613 1.235.955 1.967 1.213.693.243 1.513.382 2.728.438 1.214.056 1.701.072 5.322.072h.529c3.621 0 4.108-.016 5.322-.072 1.215-.056 2.035-.195 2.728-.438.732-.258 1.354-.6 1.967-1.213.613-.613.955-1.235 1.213-1.967.243-.693.382-1.513.438-2.728.056-1.214.072-1.701.072-5.322v-.529c0-3.621-.016-4.108-.072-5.322-.056-1.215-.195-2.035-.438-2.728-.258-.732-.6-1.354-1.213-1.967C22.336 1.387 21.714.955 20.982.697 20.289.454 19.469.315 18.254.259 17.04.203 16.553.187 12.932.187h-.529c-3.621 0-4.108.016-5.322.072C6.717.315 5.897.454 5.204.697 4.472.955 3.85 1.387 3.237 2c-.613.613-.955 1.235 1.213 1.967C1.315 5.66 1.176 6.48 1.12 7.695.064 8.909.048 9.396.048 13.017v.529zM12.017 5.84c-3.527 0-6.39 2.863-6.39 6.39s2.863 6.39 6.39 6.39 6.39-2.863 6.39-6.39-2.863-6.39-6.39-6.39zm0 10.566c-2.302 0-4.166-1.864-4.166-4.166s1.864-4.166 4.166-4.166 4.166 1.864 4.166 4.166-1.864 4.166-4.166 4.166zm6.406-11.845c-.796 0-1.441.645-1.441 1.441s.645 1.441 1.441 1.441 1.441-.645 1.441-1.441-.645-1.441-1.441-1.441z"/>
+              </svg>
+            </a>
+            <a id="footerTikTok" href="#" target="_blank" class="hover:text-white transition">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- WhatsApp Button -->
+    <a id="whatsappButton" href="#" target="_blank" class="whatsapp-float">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488" fill="white"/>
+      </svg>
+    </a>
+
+    <!-- Supabase JS CDN -->
+    <script type="module">
+      import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+      // Supabase Configuration
+      const SUPABASE_CONFIG = {
+        URL: 'https://tbzthpiirwexfbldxbqe.supabase.co',
+        ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRienRocGlpcndleGZibGR4YnFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NDU3MTAsImV4cCI6MjA5MzIyMTcxMH0._6XlZ7OFgkSeQmvK2V1Hl7w2pjhuadCbiP5qBAh1PCQ'
+      };
+
+      const supabase = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
+
+      let allGalleryItems = [];
+      let currentFilter = 'All';
+      let currentLogoUrl = '';
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[char]));
+      }
+
+      function updateWhatsAppLink(settings = {}) {
+        const whatsappBtn = document.getElementById('whatsappButton');
+        if (!whatsappBtn) return;
+
+        const number = String(settings.whatsapp_number || '').replace(/\D/g, '');
+        if (!number) {
+          whatsappBtn.href = '#contact';
+          whatsappBtn.setAttribute('aria-label', 'Contact Yolo Photography');
+          return;
+        }
+
+        const currentHour = new Date().getHours();
+        const fallbackMessage = `Hi! I'm interested in booking a photography session in ${settings.business_location || 'Voi, Kenya'}. Can we discuss details?`;
+        const savedMessage = currentHour >= 6 && currentHour < 18 ? settings.day_message : settings.night_message;
+        whatsappBtn.href = `https://wa.me/${number}?text=${encodeURIComponent(savedMessage || fallbackMessage)}`;
+        whatsappBtn.setAttribute('aria-label', 'Chat with Yolo Photography on WhatsApp');
+      }
+
+      async function fetchSiteSettings(columns = '*') {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select(columns)
+          .limit(1)
+          .maybeSingle();
+
+        return { data, error };
+      }
+
+      // Load site settings and apply branding
+      async function loadBranding() {
+        const { data, error } = await fetchSiteSettings();
+
+        if (error) {
+          console.warn('Unable to load site settings:', error.message);
+          updateWhatsAppLink();
+          return null;
+        }
+
+        if (data) {
+          // Apply logo
+          if (data.logo_url) {
+            currentLogoUrl = data.logo_url;
+            const navLogo = document.getElementById('navLogo');
+            if (navLogo) {
+              navLogo.src = data.logo_url;
+              navLogo.style.display = 'block';
+            }
+          }
+
+          // Apply site name and update meta tags
+          if (data.site_name) {
+            document.getElementById('navBrand').textContent = data.site_name;
+            document.title = `${data.site_name} - Professional Photographer`;
+            document.getElementById('pageTitle').textContent = `${data.site_name} - Professional Photographer`;
+          }
+
+          // Update meta description with location
+          if (data.business_location) {
+            const metaDesc = document.getElementById('metaDescription');
+            metaDesc.content = 'Professional Photographer for weddings, portraits, events, destination celebrations, and high-end brand photography.';
+          }
+
+          // Apply theme
+          if (data.theme) {
+            document.documentElement.setAttribute('data-theme', data.theme);
+          }
+
+          // Update contact info
+          if (data.phone) document.getElementById('contactPhone').textContent = data.phone;
+          if (data.email) {
+            document.getElementById('contactEmail').textContent = data.email;
+            document.querySelector('a[href*="mailto"]').href = `mailto:${data.email}`;
+          }
+          if (data.business_location) document.getElementById('contactLocation').textContent = data.business_location;
+          if (data.google_maps_link) {
+            // Could add a maps link here
+          }
+
+          // Update social links
+          if (data.facebook_link) {
+            document.getElementById('socialFacebook').href = data.facebook_link;
+            document.getElementById('footerFacebook').href = data.facebook_link;
+          }
+          if (data.instagram_link) {
+            document.getElementById('socialInstagram').href = data.instagram_link;
+            document.getElementById('footerInstagram').href = data.instagram_link;
+          }
+          if (data.tiktok_link) {
+            document.getElementById('socialTikTok').href = data.tiktok_link;
+            document.getElementById('footerTikTok').href = data.tiktok_link;
+          }
+
+          updateWhatsAppLink(data);
+        }
+
+        return data || null;
+      }
+
+      // Load gallery items
+      async function loadGallery() {
+        const { data, error } = await supabase
+          .from('galleries')
+          .select('id,image_url,category')
+          .order('created_at', { ascending: false })
+          .limit(60);
+
+        if (error) {
+          console.warn('Unable to load gallery:', error.message);
+          document.getElementById('galleryGrid').innerHTML =
+            '<div class="col-span-full text-center py-16"><p class="text-red-500">Unable to load images.</p></div>';
+          return;
+        }
+
+        allGalleryItems = data || [];
+        renderGallery();
+      }
+
+      // Render gallery based on filter
+      function renderGallery() {
+        const gridElement = document.getElementById('galleryGrid');
+        const emptyState = document.getElementById('emptyState');
+
+        let itemsToShow = allGalleryItems;
+        if (currentFilter !== 'All') {
+          itemsToShow = allGalleryItems.filter((item) => item.category === currentFilter);
+        }
+
+        if (itemsToShow.length === 0) {
+          gridElement.innerHTML = '';
+          emptyState.classList.remove('hidden');
+          return;
+        }
+
+        emptyState.classList.add('hidden');
+        gridElement.innerHTML = itemsToShow
+          .map(
+            (item) => {
+              // Use Supabase image transformation for optimized WebP
+              const optimizedUrl = `${item.image_url}?width=800&height=800&quality=80&format=webp`;
+              return `
+          <div class="gallery-item">
+            <img src="${escapeHtml(optimizedUrl)}" alt="${escapeHtml(item.category)}" loading="lazy" decoding="async" />
+            ${currentLogoUrl ? `<span class="gallery-watermark"><img src="${escapeHtml(currentLogoUrl)}" alt="" aria-hidden="true" /></span>` : ''}
+          </div>
+        `;
+            }
+          )
+          .join('');
+      }
+
+      // Filter gallery
+      window.filterGallery = function (category, button) {
+        currentFilter = category;
+
+        // Update active button
+        document.querySelectorAll('.filter-btn').forEach((btn) => {
+          btn.classList.remove('active');
+        });
+        if (button) button.classList.add('active');
+
+        renderGallery();
+      };
+
+      // Setup booking form
+      function setupBookingForm() {
+        const form = document.getElementById('bookingForm');
+        if (!form) return;
+
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const formData = new FormData(form);
+          const bookingData = {
+            client_name: formData.get('clientName'),
+            phone: formData.get('clientPhone'),
+            event_date: formData.get('eventDate'),
+            service_type: formData.get('serviceType'),
+            event_location: formData.get('eventLocation'),
+          };
+
+          const submitBtn = form.querySelector('button[type="submit"]');
+          const originalText = submitBtn.textContent;
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Sending...';
+
+          try {
+            const { error } = await supabase.from('bookings').insert([bookingData]);
+
+            if (error) throw error;
+
+            alert('Thank you! Your booking request has been sent. We\'ll contact you soon.');
+            form.reset();
+          } catch (error) {
+            console.error('Booking submission error:', error);
+            alert('Sorry, there was an error sending your booking request. Please try again.');
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          }
+        });
+      }
+
+      // Mobile menu functions
+      window.toggleMobileMenu = function() {
+        const menu = document.getElementById('mobileMenu');
+        const button = document.getElementById('mobileMenuButton');
+        const isOpen = !menu.classList.contains('hidden');
+
+        if (isOpen) {
+          menu.classList.add('hidden');
+          button.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+        } else {
+          menu.classList.remove('hidden');
+          button.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+        }
+      };
+
+      window.closeMobileMenu = function() {
+        const menu = document.getElementById('mobileMenu');
+        const button = document.getElementById('mobileMenuButton');
+        menu.classList.add('hidden');
+        button.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+      };
+
+      // Setup theme toggle
+      function setupThemeToggle() {
+        const toggle = document.getElementById('themeToggle');
+        if (!toggle) return;
+
+        toggle.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme') || 'light';
+          const newTheme = current === 'light' ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', newTheme);
+          // Optionally save to localStorage or update server
+        });
+      }
+
+      // Load services
+      async function loadServices() {
+        const { data, error } = await supabase
+          .from('services')
+          .select('id,service_name,description,price,icon')
+          .order('created_at', { ascending: false })
+          .limit(12);
+        if (error) {
+          console.warn('Unable to load services:', error.message);
+          return;
+        }
+
+        const servicesGrid = document.querySelector('#services .grid');
+        if (!servicesGrid || !data) return;
+
+        servicesGrid.innerHTML = data.map(service => `
+          <div class="service-card bg-white rounded-lg p-8 border border-gray-200">
+            <div class="w-12 h-12 rounded-full accent-bg flex items-center justify-center text-white text-xl mb-4">
+              ${escapeHtml(service.icon || 'Camera')}
+            </div>
+            <h3 class="text-xl font-semibold mb-3">${escapeHtml(service.service_name)}</h3>
+            <p class="text-gray-600 text-sm mb-6">${escapeHtml(service.description)}</p>
+            <p class="text-sm accent-primary font-semibold">${escapeHtml(service.price || 'Price on request')}</p>
+          </div>
+        `).join('');
+      }
+
+      // Initialize
+      async function init() {
+        if (!SUPABASE_CONFIG.URL.includes('supabase.co') || !SUPABASE_CONFIG.ANON_KEY.includes('eyJ')) {
+          console.warn('Supabase credentials must be updated in index.html');
+        }
+
+        supabase.from('site_visits').insert([{}]).then(({ error }) => {
+          if (error) console.warn('Unable to log visit:', error.message);
+        });
+
+        setupBookingForm();
+        setupThemeToggle();
+        await Promise.allSettled([loadBranding(), loadGallery(), loadServices()]);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

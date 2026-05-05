@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yolo Photography Dashboard</title>
+    <link rel="stylesheet" href="../styles/site.css" />
+    <style>
+      .admin-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+      .admin-sidebar { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem; border-radius: 1rem; background: #ffffff; border: 1px solid #e2e8f0; position: sticky; top: 1rem; align-self: flex-start; height: min-content; }
+      .sidebar-brand h1 { margin: 0.25rem 0 0.5rem; font-size: 1.5rem; line-height: 1.2; }
+      .sidebar-brand p { margin: 0; }
+      .sidebar-nav { display: grid; gap: 0.75rem; }
+      .sidebar-link, .bottom-nav-button { width: 100%; text-align: left; display: inline-flex; align-items: center; justify-content: flex-start; padding: 0.9rem 1rem; border-radius: 0.85rem; border: 1px solid transparent; background: #f8fafc; color: #0f172a; cursor: pointer; font-weight: 600; }
+      .sidebar-link.active, .bottom-nav-button.active { background: var(--accent, #334155); color: #ffffff; border-color: transparent; }
+      .sidebar-footer { margin-top: auto; }
+      .admin-content { flex: 1; }
+      .admin-panel { display: block; }
+      .admin-bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 0.75rem 1rem; gap: 0.5rem; border-top: 1px solid #e2e8f0; background: #ffffff; z-index: 50; }
+      .admin-bottom-nav button { flex: 1; margin: 0 0.25rem; }
+      @media (max-width: 900px) {
+        .admin-layout { flex-direction: column; }
+        .admin-sidebar { display: none; }
+        .admin-bottom-nav { display: flex; }
+        .admin-content { padding-bottom: 5rem; }
+      }
+    </style>
+  </head>
+  <body data-page="dashboard">
+    <main class="dashboard-shell admin-layout">
+      <aside class="admin-sidebar">
+        <div class="sidebar-brand">
+          <p class="eyebrow">Yolo Photography</p>
+          <h1>Studio Control</h1>
+          <p class="text-sm text-slate-500">Manage branding, gallery, testimonials and user access from one panel.</p>
+        </div>
+        <nav class="sidebar-nav" aria-label="Admin sections">
+          <button type="button" class="sidebar-link active" data-section="branding">Branding</button>
+          <button type="button" class="sidebar-link" data-section="gallery">Gallery</button>
+          <button type="button" class="sidebar-link" data-section="testimonials">Testimonials</button>
+          <button type="button" class="sidebar-link" data-section="admins">Admins</button>
+        </nav>
+        <div class="sidebar-footer">
+          <button id="logoutButton" class="button button-secondary w-full">Log out</button>
+        </div>
+      </aside>
+
+      <section class="admin-content">
+        <div class="dashboard-card dashboard-stack">
+          <header class="dashboard-header dashboard-top">
+            <div>
+              <p class="eyebrow">Yolo Photography</p>
+              <h1>Admin Dashboard</h1>
+              <p class="section-copy">Logo, theme, and portfolio management in one clean studio panel.</p>
+            </div>
+          </header>
+
+          <div id="brandingPanel" class="admin-panel">
+            <section class="panel-block">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Logo &amp; branding</p>
+                  <h2>Upload your site logo</h2>
+                </div>
+                <div class="accent-preview">
+                  <span class="accent-swatch"></span>
+                  <span id="accentColorLabel">#334155</span>
+                </div>
+              </div>
+
+              <div class="panel-grid">
+                <div class="panel-card">
+                  <p class="panel-label">Current logo</p>
+                  <div id="currentLogo" class="logo-preview">No logo uploaded yet</div>
+                  <p class="panel-copy">The logo updates the brand mark only. Website colors stay fixed for readability.</p>
+                </div>
+
+                <div class="panel-card">
+                  <label class="form-label">
+                    Choose logo
+                    <input id="logoInput" type="file" accept="image/*" />
+                  </label>
+                  <div id="logoPreview" class="image-preview"></div>
+                  <p id="logoMessage" class="form-message"></p>
+                  <button id="uploadLogoButton" class="button button-primary">Upload logo</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-block">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Business Settings</p>
+                  <h2>Update location &amp; branding</h2>
+                </div>
+                <div class="panel-chip">SEO &amp; Local</div>
+              </div>
+
+              <div class="panel-grid">
+                <div class="panel-card">
+                  <label class="form-label">
+                    Business Location
+                    <input id="locationInput" type="text" placeholder="e.g., Voi, Kenya" />
+                  </label>
+                  <p id="locationMessage" class="form-message"></p>
+                  <button id="updateLocationButton" class="button button-primary">Update Location</button>
+                </div>
+
+                <div class="panel-card panel-info">
+                  <p class="panel-label">Location Impact</p>
+                  <ul class="info-list">
+                    <li>Updates meta tags for local SEO.</li>
+                    <li>Appears in WhatsApp booking messages.</li>
+                    <li>Helps with location-based search rankings.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-block">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Analytics</p>
+                  <h2>Website performance</h2>
+                </div>
+                <div class="panel-chip">Real-time</div>
+              </div>
+
+              <div class="panel-grid">
+                <div class="panel-card">
+                  <p class="panel-label">Total Website Visits</p>
+                  <p id="totalVisits" class="text-2xl font-bold text-slate-900">Loading...</p>
+                  <p class="text-sm text-slate-600 mt-2">Tracked since launch</p>
+                </div>
+
+                <div class="panel-card">
+                  <p class="panel-label">Recent Bookings</p>
+                  <div id="recentBookings" class="space-y-3">
+                    <p class="text-sm text-slate-500">Loading inquiries...</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-block">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Social &amp; Contact</p>
+                  <h2>Connect with clients</h2>
+                </div>
+                <div class="panel-chip">Public Links</div>
+              </div>
+
+              <div class="panel-grid">
+                <div class="panel-card">
+                  <label class="form-label">
+                    TikTok Profile Link
+                    <input id="tiktokInput" type="url" placeholder="https://tiktok.com/@yourprofile" />
+                  </label>
+                  <label class="form-label">
+                    Instagram Link
+                    <input id="instagramInput" type="url" placeholder="https://instagram.com/yourprofile" />
+                  </label>
+                  <label class="form-label">
+                    Facebook Link
+                    <input id="facebookInput" type="url" placeholder="https://facebook.com/yourpage" />
+                  </label>
+                  <p id="socialMessage" class="form-message"></p>
+                  <button id="updateSocialButton" class="button button-primary">Update Social Links</button>
+                </div>
+
+                <div class="panel-card">
+                  <label class="form-label">
+                    WhatsApp Number
+                    <input id="whatsappInput" type="tel" placeholder="+1234567890" />
+                  </label>
+                  <label class="form-label">
+                    Day Message
+                    <input id="dayMessageInput" type="text" placeholder="Good day! How can I help?" />
+                  </label>
+                  <label class="form-label">
+                    Night Message
+                    <input id="nightMessageInput" type="text" placeholder="Good evening! How can I assist?" />
+                  </label>
+                  <p id="whatsappMessage" class="form-message"></p>
+                  <button id="updateWhatsappButton" class="button button-primary">Update WhatsApp</button>
+                </div>
+
+                <div class="panel-card">
+                  <label class="form-label">
+                    Phone Number
+                    <input id="phoneInput" type="tel" placeholder="+1234567890" />
+                  </label>
+                  <label class="form-label">
+                    Email
+                    <input id="emailInput" type="email" placeholder="hello@yolophotography.com" />
+                  </label>
+                  <label class="form-label">
+                    Google Maps Link
+                    <input id="mapsInput" type="url" placeholder="https://maps.google.com/..." />
+                  </label>
+                  <p id="contactMessage" class="form-message"></p>
+                  <button id="updateContactButton" class="button button-primary">Update Contact</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-block">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Services Management</p>
+                  <h2>Add, edit, or delete services</h2>
+                </div>
+                <div class="panel-chip">Dynamic Content</div>
+              </div>
+
+              <div class="panel-grid">
+                <div class="panel-card">
+                  <label class="form-label">
+                    Service Title
+                    <input id="serviceTitleInput" type="text" placeholder="e.g., Wedding Photography" />
+                  </label>
+                  <label class="form-label">
+                    Description
+                    <textarea id="serviceDescInput" placeholder="Describe the service..."></textarea>
+                  </label>
+                  <label class="form-label">
+                    Price
+                    <input id="servicePriceInput" type="text" placeholder="Starting at $2,000" />
+                  </label>
+                  <label class="form-label">
+                    Icon
+                    <input id="serviceIconInput" type="text" placeholder="Camera" />
+                  </label>
+                  <p id="serviceMessage" class="form-message"></p>
+                  <button id="addServiceButton" class="button button-primary">Add Service</button>
+                </div>
+
+                <div class="panel-card">
+                  <p class="panel-label">Existing Services</p>
+                  <div id="servicesList" class="space-y-3">
+                    <p class="text-sm text-slate-500">Loading services...</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-block">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Theme Settings</p>
+                  <h2>Dark/Light Mode</h2>
+                </div>
+                <div class="panel-chip">User Experience</div>
+              </div>
+
+              <div class="panel-grid">
+                <div class="panel-card">
+                  <p class="panel-label">Current Theme</p>
+                  <p id="currentTheme" class="text-lg font-semibold">Light</p>
+                  <button id="toggleThemeButton" class="button button-primary mt-4">Toggle Theme</button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div id="galleryPanel" class="admin-panel" style="display: none;">
+            <section class="panel-block">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Media Manager</p>
+                  <h2>Upload portfolio imagery</h2>
+                </div>
+                <div class="panel-chip">Studio &bull; Wedding &bull; Ruracio &bull; Editorial</div>
+              </div>
+
+              <div class="panel-grid">
+                <div class="panel-card">
+                  <div id="dropZone" class="drop-zone">
+                    <p>Drag &amp; drop an image here</p>
+                    <p class="muted">Or click to select a file</p>
+                    <input id="galleryInput" type="file" accept="image/*" class="file-input" />
+                  </div>
+                  <label class="form-label">
+                    Select category
+                    <select id="categorySelect"></select>
+                  </label>
+                  <div id="galleryPreview" class="image-preview"></div>
+                  <p id="galleryMessage" class="form-message"></p>
+                  <button id="uploadGalleryButton" class="button button-primary">Upload media</button>
+                </div>
+
+                <div class="panel-card panel-info">
+                  <p class="panel-label">Media management</p>
+                  <ul class="info-list">
+                    <li>Upload high-quality images for the portfolio.</li>
+                    <li>Assign clear categories like Studio, Wedding, or Ruracio.</li>
+                    <li>Delete old gallery items when they no longer match the brand.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-block">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Media Library</p>
+                  <h2>Published portfolio images</h2>
+                </div>
+                <div id="galleryCount" class="panel-chip">0 uploaded images</div>
+              </div>
+              <div id="galleryGrid" class="gallery-grid"></div>
+            </section>
+          </div>
+
+          <section id="testimonialsPanel" class="panel-block admin-panel" style="display:none;">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Testimonials</p>
+              <h2>Manage review drafts & publish workflow</h2>
+            </div>
+            <div class="panel-chip">Draft workflow</div>
+          </div>
+
+          <div class="panel-grid">
+            <div class="panel-card">
+              <label class="form-label">
+                Client Name
+                <input id="testimonialNameInput" type="text" placeholder="Client name" />
+              </label>
+              <label class="form-label">
+                Client Role
+                <input id="testimonialRoleInput" type="text" placeholder="Client role" />
+              </label>
+              <label class="form-label">
+                Review Quote
+                <textarea id="testimonialQuoteInput" placeholder="Client testimonial..."></textarea>
+              </label>
+              <p id="testimonialMessage" class="form-message"></p>
+              <button id="saveTestimonialButton" class="button button-primary">Save testimonial</button>
+            </div>
+
+            <div class="panel-card">
+              <p class="panel-label">Review queue</p>
+              <div id="testimonialsList" class="space-y-3">
+                <p class="text-sm text-slate-500">Loading testimonials...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="adminsPanel" class="panel-block admin-panel" style="display: none;">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">User Management</p>
+              <h2>Manage Admin Users</h2>
+            </div>
+            <div class="panel-chip">Super Admin Only</div>
+          </div>
+
+          <div class="panel-grid">
+            <div class="panel-card">
+              <label class="form-label">
+                Add New Admin Email
+                <input id="newAdminEmailInput" type="email" placeholder="admin@example.com" />
+              </label>
+              <p id="addAdminMessage" class="form-message"></p>
+              <button id="addAdminButton" class="button button-primary">Add Admin</button>
+            </div>
+
+            <div class="panel-card">
+              <p class="panel-label">Current Admin Users</p>
+              <div id="adminUsersList" class="space-y-3">
+                <p class="text-sm text-slate-500">Loading admin users...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="admin-bottom-nav" aria-label="Admin navigation">
+      <button type="button" class="bottom-nav-button active" data-section="branding">Branding</button>
+      <button type="button" class="bottom-nav-button" data-section="gallery">Gallery</button>
+      <button type="button" class="bottom-nav-button" data-section="testimonials">Testimonials</button>
+      <button type="button" class="bottom-nav-button" data-section="admins">Admins</button>
+    </div>
+
+    <script type="module" src="../main.js"></script>
+  </body>
+</html>

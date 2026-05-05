@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yolo Photography Admin</title>
+    <script type="module">
+      import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+      // Supabase Configuration
+      const SUPABASE_CONFIG = {
+        URL: 'https://tbzthpiirwexfbldxbqe.supabase.co',
+        ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRienRocGlpcndleGZibGR4YnFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NDU3MTAsImV4cCI6MjA5MzIyMTcxMH0._6XlZ7OFgkSeQmvK2V1Hl7w2pjhuadCbiP5qBAh1PCQ'
+      };
+
+      const supabase = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
+
+      async function protectAdmin() {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        // For first-time setup, allow access if no admins are configured
+        // This will be updated when admin management is fully implemented
+        const allowedEmails = ['davidomari006@gmail.com'];
+        const userEmail = session?.user?.email;
+
+        // If user is logged in with correct email, redirect to dashboard
+        if (userEmail && allowedEmails.includes(userEmail)) {
+          window.location.href = '/admin';
+          return;
+        }
+
+        // If user is logged in but with wrong email, redirect to index
+        if (userEmail && !allowedEmails.includes(userEmail)) {
+          alert('Unauthorized Access');
+          window.location.href = 'index.html';
+          return;
+        }
+
+        // If not logged in, show the login form (don't redirect)
+        // The login form will be handled by main.js
+      }
+
+      function bindLogoutButton() {
+        document.addEventListener('DOMContentLoaded', () => {
+          const logoutButton = document.getElementById('logoutButton');
+          if (!logoutButton) return;
+
+          logoutButton.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.href = 'index.html';
+          });
+        });
+      }
+
+      protectAdmin();
+      bindLogoutButton();
+    </script>
+    <link rel="stylesheet" href="styles/site.css" />
+  </head>
+  <body data-page="admin">
+    <main class="dashboard-shell">
+      <div class="dashboard-card">
+        <div class="dashboard-header">
+          <div>
+            <p class="eyebrow">Yolo Photography</p>
+            <h1>Secure studio access</h1>
+            <p class="section-copy">Sign in with your Supabase credentials to manage the studio brand and portfolio.</p>
+          </div>
+        </div>
+
+        <form id="loginForm" class="form-panel">
+          <label>
+            Email
+            <input id="loginEmail" type="email" placeholder="davidomari006@gmail.com" required />
+          </label>
+          <label>
+            Password
+            <input id="loginPassword" type="password" placeholder="Enter your password" required />
+          </label>
+          <p id="loginMessage" class="form-message"></p>
+          <button type="submit" class="button button-primary">Sign in</button>
+
+          <button type="button" id="resetPasswordBtn" class="button button-secondary" style="margin-top: 12px;">
+            Forgot Password? Reset
+          </button>
+
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="index.html" style="font-size: 0.875rem; color: #9ca3af; text-decoration: none; transition: color 0.2s ease;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#9ca3af'">
+              ← Back to Website
+            </a>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

@@ -1,8 +1,0 @@
-::1 - - [05/May/2026 06:45:09] "GET /admin.html HTTP/1.1" 200 -
-::1 - - [05/May/2026 06:46:21] "GET /admin.html HTTP/1.1" 304 -
-::1 - - [05/May/2026 06:46:21] "GET /main.js HTTP/1.1" 200 -
-::1 - - [05/May/2026 06:46:21] "GET /styles/site.css HTTP/1.1" 304 -
-::1 - - [05/May/2026 06:46:21] "GET /admin/ HTTP/1.1" 304 -
-::1 - - [05/May/2026 06:46:41] "GET /index.html HTTP/1.1" 200 -
-::1 - - [05/May/2026 06:50:08] code 404, message File not found
-::1 - - [05/May/2026 06:50:08] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -

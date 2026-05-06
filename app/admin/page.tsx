@@ -10,7 +10,7 @@ const galleryBucket = 'portfolios';
 const brandAccentColor = '#334155';
 const categories = ['Studio', 'Wedding', 'Ruracio', 'Editorial', 'Lifestyle'];
 
-type AdminSection = 'branding' | 'gallery' | 'testimonials';
+type AdminSection = 'branding' | 'gallery' | 'testimonials' | 'services' | 'bookings';
 
 type SiteSettings = {
   id?: string;
@@ -35,6 +35,26 @@ type Testimonial = {
   created_at: string;
 };
 
+type Service = {
+  id: number;
+  service_name: string;
+  description: string;
+  price: string | null;
+  icon: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type Booking = {
+  id: number;
+  client_name: string;
+  phone: string;
+  event_date: string;
+  service_type: string;
+  event_location: string;
+  created_at: string;
+};
+
 type MessageState = {
   type: 'idle' | 'success' | 'error';
   text: string;
@@ -44,6 +64,8 @@ const sectionItems: Array<{ id: AdminSection; label: string; description: string
   { id: 'branding', label: 'Branding', description: 'Logo and site identity' },
   { id: 'gallery', label: 'Gallery', description: 'Watermarked portfolio media' },
   { id: 'testimonials', label: 'Testimonials', description: 'Draft to live reviews' },
+  { id: 'services', label: 'Services', description: 'Photography services offered' },
+  { id: 'bookings', label: 'Bookings', description: 'Client inquiries and bookings' },
 ];
 
 function buildStoragePath(folder: string, file: File) {
@@ -108,6 +130,17 @@ export default function AdminPage() {
   const [savingTestimonial, setSavingTestimonial] = useState(false);
   const [busyTestimonialId, setBusyTestimonialId] = useState<string | null>(null);
 
+  const [services, setServices] = useState<Service[]>([]);
+  const [serviceName, setServiceName] = useState('');
+  const [serviceDescription, setServiceDescription] = useState('');
+  const [servicePrice, setServicePrice] = useState('');
+  const [serviceIcon, setServiceIcon] = useState('Camera');
+  const [serviceMessage, setServiceMessage] = useState<MessageState>({ type: 'idle', text: '' });
+  const [savingService, setSavingService] = useState(false);
+  const [busyServiceId, setBusyServiceId] = useState<number | null>(null);
+
+  const [bookings, setBookings] = useState<Booking[]>([]);
+
   const pageStyle = useMemo(
     () => ({ '--theme-accent': brandAccentColor } as CSSProperties),
     []
@@ -119,7 +152,7 @@ export default function AdminPage() {
 
       if (data.session?.user?.email === adminEmail) {
         setStatus('authorized');
-        await Promise.all([loadSettings(), loadGallery(), loadTestimonials()]);
+        await Promise.all([loadSettings(), loadGallery(), loadTestimonials(), loadServices(), loadBookings()]);
         return;
       }
 
@@ -179,6 +212,24 @@ export default function AdminPage() {
       .order('created_at', { ascending: false });
 
     if (!error) setTestimonials((data as Testimonial[]) || []);
+  }
+
+  async function loadServices() {
+    const { data, error } = await supabase
+      .from('services')
+      .select('id,service_name,description,price,icon,created_at,updated_at')
+      .order('created_at', { ascending: false });
+
+    if (!error) setServices((data as Service[]) || []);
+  }
+
+  async function loadBookings() {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id,client_name,phone,event_date,service_type,event_location,created_at')
+      .order('created_at', { ascending: false });
+
+    if (!error) setBookings((data as Booking[]) || []);
   }
 
   async function handleLogout() {
@@ -365,6 +416,52 @@ export default function AdminPage() {
     setBusyTestimonialId(null);
   }
 
+  async function handleCreateService() {
+    if (!serviceName.trim() || !serviceDescription.trim()) {
+      setServiceMessage({ type: 'error', text: 'Service name and description are required.' });
+      return;
+    }
+
+    setSavingService(true);
+    setServiceMessage({ type: 'idle', text: '' });
+
+    const { error } = await supabase.from('services').insert([{
+      service_name: serviceName.trim(),
+      description: serviceDescription.trim(),
+      price: servicePrice.trim() || null,
+      icon: serviceIcon.trim() || 'Camera'
+    }]);
+
+    if (error) {
+      setServiceMessage({ type: 'error', text: error.message });
+    } else {
+      setServiceMessage({ type: 'success', text: 'Service added successfully.' });
+      setServiceName('');
+      setServiceDescription('');
+      setServicePrice('');
+      setServiceIcon('Camera');
+      await loadServices();
+    }
+
+    setSavingService(false);
+  }
+
+  async function handleDeleteService(service: Service) {
+    if (!confirm(`Delete service "${service.service_name}"?`)) return;
+
+    setBusyServiceId(service.id);
+    const { error } = await supabase.from('services').delete().eq('id', service.id);
+
+    if (error) {
+      setServiceMessage({ type: 'error', text: error.message });
+    } else {
+      setServiceMessage({ type: 'success', text: 'Service deleted permanently.' });
+      await loadServices();
+    }
+
+    setBusyServiceId(null);
+  }
+
   if (status === 'loading') {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-white">
@@ -466,6 +563,29 @@ export default function AdminPage() {
                 onToggle={handleToggleTestimonial}
                 onDelete={handleDeleteTestimonial}
               />
+            ) : null}
+
+            {activeSection === 'services' ? (
+              <ServicesSection
+                services={services}
+                name={serviceName}
+                description={serviceDescription}
+                price={servicePrice}
+                icon={serviceIcon}
+                message={serviceMessage}
+                saving={savingService}
+                busyId={busyServiceId}
+                onNameChange={setServiceName}
+                onDescriptionChange={setServiceDescription}
+                onPriceChange={setServicePrice}
+                onIconChange={setServiceIcon}
+                onCreate={handleCreateService}
+                onDelete={handleDeleteService}
+              />
+            ) : null}
+
+            {activeSection === 'bookings' ? (
+              <BookingsSection bookings={bookings} />
             ) : null}
           </div>
         </section>
@@ -734,6 +854,105 @@ function TestimonialsSection({
           </article>
         )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No testimonials yet. Add three starters or create a fresh draft.</p>}
       </div>
+    </div>
+  );
+}
+
+function ServicesSection({
+  services,
+  name,
+  description,
+  price,
+  icon,
+  message,
+  saving,
+  busyId,
+  onNameChange,
+  onDescriptionChange,
+  onPriceChange,
+  onIconChange,
+  onCreate,
+  onDelete,
+}: {
+  services: Service[];
+  name: string;
+  description: string;
+  price: string;
+  icon: string;
+  message: MessageState;
+  saving: boolean;
+  busyId: number | null;
+  onNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onPriceChange: (value: string) => void;
+  onIconChange: (value: string) => void;
+  onCreate: () => void;
+  onDelete: (service: Service) => void;
+}) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-semibold text-slate-500">New service</p>
+        <div className="mt-5 space-y-4">
+          <input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Service name" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+          <textarea value={description} onChange={(event) => onDescriptionChange(event.target.value)} placeholder="Service description" rows={3} className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+          <input value={price} onChange={(event) => onPriceChange(event.target.value)} placeholder="Price (optional)" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+          <input value={icon} onChange={(event) => onIconChange(event.target.value)} placeholder="Icon name" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+          <Message message={message} />
+          <button
+            type="button"
+            onClick={onCreate}
+            disabled={saving}
+            className="w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+          >
+            {saving ? 'Adding service...' : 'Add service'}
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {services.length ? services.map((service) => (
+          <article key={service.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">{service.service_name}</h3>
+                <p className="text-sm text-slate-600">{service.description}</p>
+                {service.price && <p className="text-sm font-medium text-slate-950 mt-1">{service.price}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={() => onDelete(service)}
+                disabled={busyId === service.id}
+                className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
+          </article>
+        )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No services yet. Add your photography services.</p>}
+      </div>
+    </div>
+  );
+}
+
+function BookingsSection({ bookings }: { bookings: Booking[] }) {
+  return (
+    <div className="space-y-4">
+      {bookings.length ? bookings.map((booking) => (
+        <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-950">{booking.client_name}</h3>
+              <p className="text-sm text-slate-600">{booking.service_type}</p>
+              <p className="text-sm text-slate-500">{booking.event_location} • {new Date(booking.event_date).toLocaleDateString()}</p>
+              <p className="text-sm text-slate-500">{booking.phone}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-400">{new Date(booking.created_at).toLocaleDateString()}</p>
+            </div>
+          </div>
+        </article>
+      )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No bookings yet. Client inquiries will appear here.</p>}
     </div>
   );
 }

@@ -390,7 +390,7 @@ export default function AdminPage() {
       }
 
       setGalleryFile(null);
-      setGalleryCategory(categories[0]);
+      setGalleryCategory(categories[0].value);
       setGalleryMessage({ type: 'success', text: 'Image uploaded and added to the gallery.' });
       await loadGallery();
     } finally {

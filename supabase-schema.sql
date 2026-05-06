@@ -25,6 +25,28 @@ insert into site_settings (site_name, primary_color, business_location)
 select 'Yolo Photography', '#334155', 'Voi, Kenya'
 where not exists (select 1 from site_settings);
 
+alter table site_settings
+  add column if not exists site_name text default 'Yolo Photography',
+  add column if not exists logo_url text,
+  add column if not exists primary_color text default '#334155',
+  add column if not exists business_location text default 'Voi, Kenya',
+  add column if not exists tiktok_link text,
+  add column if not exists instagram_link text,
+  add column if not exists facebook_link text,
+  add column if not exists whatsapp_number text,
+  add column if not exists day_message text default 'Good day! How can I help you?',
+  add column if not exists night_message text default 'Good evening! How can I assist?',
+  add column if not exists phone text,
+  add column if not exists email text,
+  add column if not exists google_maps_link text,
+  add column if not exists theme text default 'light',
+  add column if not exists admin_emails text[] default array['davidomari006@gmail.com'],
+  add column if not exists updated_at timestamp with time zone default now();
+
+update site_settings
+set admin_emails = array['davidomari006@gmail.com']
+where admin_emails is null or array_length(admin_emails, 1) is null;
+
 -- Create a table for services offered.
 create table if not exists services (
   id bigint generated always as identity primary key,

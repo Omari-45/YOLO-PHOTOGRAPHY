@@ -13,7 +13,7 @@ const categories = ['Studio', 'Wedding', 'Ruracio', 'Editorial', 'Lifestyle'];
 type AdminSection = 'branding' | 'gallery' | 'testimonials';
 
 type SiteSettings = {
-  id: string;
+  id?: string;
   logo_url?: string | null;
   site_name?: string | null;
 };

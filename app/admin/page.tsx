@@ -16,12 +16,13 @@ const categories = [
   { value: 'Lifestyle', label: 'Lifestyle (Candid shots)' },
 ];
 
-type AdminSection = 'branding' | 'gallery' | 'testimonials' | 'services' | 'bookings';
+type AdminSection = 'branding' | 'gallery' | 'testimonials' | 'services' | 'bookings' | 'users';
 
 type SiteSettings = {
   id?: string;
   logo_url?: string | null;
   site_name?: string | null;
+  admin_emails?: string[] | null;
 };
 
 type GalleryItem = {
@@ -61,6 +62,10 @@ type Booking = {
   created_at: string;
 };
 
+type User = {
+  email: string;
+};
+
 type MessageState = {
   type: 'idle' | 'success' | 'error';
   text: string;
@@ -72,6 +77,7 @@ const sectionItems: Array<{ id: AdminSection; label: string; description: string
   { id: 'testimonials', label: 'Testimonials', description: 'Draft to live reviews' },
   { id: 'services', label: 'Services', description: 'Photography services offered' },
   { id: 'bookings', label: 'Bookings', description: 'Client inquiries and bookings' },
+  { id: 'users', label: 'User Management', description: 'Manage admin access' },
 ];
 
 function buildStoragePath(folder: string, file: File) {
@@ -107,6 +113,18 @@ async function saveSiteSettings(updates: Partial<SiteSettings>) {
   return supabase
     .from('site_settings')
     .insert([updates]);
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+async function getAllowedAdminEmails() {
+  const fallback = adminEmail ? [normalizeEmail(adminEmail)] : [];
+  const { data, error } = await fetchSiteSettings('admin_emails');
+  if (error) return fallback;
+  const emails = data?.admin_emails?.map(normalizeEmail).filter(Boolean);
+  return emails?.length ? emails : fallback;
 }
 
 export default function AdminPage() {
@@ -145,8 +163,15 @@ export default function AdminPage() {
   const [serviceMessage, setServiceMessage] = useState<MessageState>({ type: 'idle', text: '' });
   const [savingService, setSavingService] = useState(false);
   const [busyServiceId, setBusyServiceId] = useState<number | null>(null);
+  const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
 
   const [bookings, setBookings] = useState<Booking[]>([]);
+
+  const [users, setUsers] = useState<User[]>([]);
+  const [userEmail, setUserEmail] = useState('');
+  const [userMessage, setUserMessage] = useState<MessageState>({ type: 'idle', text: '' });
+  const [savingUser, setSavingUser] = useState(false);
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   const pageStyle = useMemo(
     () => ({ '--theme-accent': themeAccent } as CSSProperties),
@@ -219,11 +244,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     async function checkAccess() {
-      const { data } = await supabase.auth.getSession();
+      const [{ data }, allowedEmails] = await Promise.all([
+        supabase.auth.getSession(),
+        getAllowedAdminEmails(),
+      ]);
 
-      if (data.session?.user?.email === adminEmail) {
+      const sessionEmail = normalizeEmail(data.session?.user?.email || '');
+      if (sessionEmail && allowedEmails.includes(sessionEmail)) {
         setStatus('authorized');
-        await Promise.all([loadSettings(), loadGallery(), loadTestimonials(), loadServices(), loadBookings()]);
+        await Promise.all([loadSettings(), loadGallery(), loadTestimonials(), loadServices(), loadBookings(), loadUsers()]);
         return;
       }
 
@@ -301,6 +330,11 @@ export default function AdminPage() {
       .order('created_at', { ascending: false });
 
     if (!error) setBookings((data as Booking[]) || []);
+  }
+
+  async function loadUsers() {
+    const emails = await getAllowedAdminEmails();
+    setUsers(emails.map((email) => ({ email })));
   }
 
   async function handleLogout() {
@@ -533,6 +567,85 @@ export default function AdminPage() {
     setBusyServiceId(null);
   }
 
+  async function handleUpdateServicePrice(service: Service) {
+    const nextPrice = prompt(`Update price for ${service.service_name}`, service.price || '');
+    if (nextPrice === null) return;
+
+    setEditingServiceId(service.id);
+    const { error } = await supabase
+      .from('services')
+      .update({ price: nextPrice.trim() || null, updated_at: new Date().toISOString() })
+      .eq('id', service.id);
+
+    if (error) {
+      setServiceMessage({ type: 'error', text: error.message });
+    } else {
+      setServiceMessage({ type: 'success', text: 'Service price updated.' });
+      await loadServices();
+    }
+
+    setEditingServiceId(null);
+  }
+
+  async function handleCreateUser() {
+    if (!userEmail.trim()) {
+      setUserMessage({ type: 'error', text: 'Email address is required.' });
+      return;
+    }
+
+    setSavingUser(true);
+    setUserMessage({ type: 'idle', text: '' });
+
+    const newEmail = normalizeEmail(userEmail);
+    if (!newEmail.includes('@')) {
+      setUserMessage({ type: 'error', text: 'Enter a valid email address.' });
+      setSavingUser(false);
+      return;
+    }
+
+    const currentEmails = await getAllowedAdminEmails();
+    if (currentEmails.includes(newEmail)) {
+      setUserMessage({ type: 'error', text: 'This email is already an admin.' });
+      setSavingUser(false);
+      return;
+    }
+
+    const { error } = await saveSiteSettings({ admin_emails: [...currentEmails, newEmail] });
+
+    if (error) {
+      setUserMessage({ type: 'error', text: error.message });
+    } else {
+      setUserMessage({ type: 'success', text: 'Admin user added. They can now log in with their Supabase credentials.' });
+      setUserEmail('');
+      await loadUsers();
+    }
+
+    setSavingUser(false);
+  }
+
+  async function handleDeleteUser(user: User) {
+    if (normalizeEmail(user.email) === normalizeEmail(adminEmail || '')) {
+      setUserMessage({ type: 'error', text: 'The owner admin cannot be removed here.' });
+      return;
+    }
+
+    if (!confirm(`Remove admin access for ${user.email}?`)) return;
+
+    setBusyUserId(user.email);
+    const currentEmails = await getAllowedAdminEmails();
+    const nextEmails = currentEmails.filter((email) => email !== normalizeEmail(user.email));
+    const { error } = await saveSiteSettings({ admin_emails: nextEmails });
+
+    if (error) {
+      setUserMessage({ type: 'error', text: error.message });
+    } else {
+      setUserMessage({ type: 'success', text: 'Admin access removed.' });
+      await loadUsers();
+    }
+
+    setBusyUserId(null);
+  }
+
   if (status === 'loading') {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-white">
@@ -648,17 +761,32 @@ export default function AdminPage() {
                 message={serviceMessage}
                 saving={savingService}
                 busyId={busyServiceId}
+                editingId={editingServiceId}
                 onNameChange={setServiceName}
                 onDescriptionChange={setServiceDescription}
                 onPriceChange={setServicePrice}
                 onIconChange={setServiceIcon}
                 onCreate={handleCreateService}
+                onUpdatePrice={handleUpdateServicePrice}
                 onDelete={handleDeleteService}
               />
             ) : null}
 
             {activeSection === 'bookings' ? (
               <BookingsSection bookings={bookings} />
+            ) : null}
+
+            {activeSection === 'users' ? (
+              <UsersSection
+                users={users}
+                userEmail={userEmail}
+                userMessage={userMessage}
+                savingUser={savingUser}
+                busyUserId={busyUserId}
+                onEmailChange={setUserEmail}
+                onCreate={handleCreateUser}
+                onDelete={handleDeleteUser}
+              />
             ) : null}
           </div>
         </section>
@@ -953,11 +1081,13 @@ function ServicesSection({
   message,
   saving,
   busyId,
+  editingId,
   onNameChange,
   onDescriptionChange,
   onPriceChange,
   onIconChange,
   onCreate,
+  onUpdatePrice,
   onDelete,
 }: {
   services: Service[];
@@ -968,11 +1098,13 @@ function ServicesSection({
   message: MessageState;
   saving: boolean;
   busyId: number | null;
+  editingId: number | null;
   onNameChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onPriceChange: (value: string) => void;
   onIconChange: (value: string) => void;
   onCreate: () => void;
+  onUpdatePrice: (service: Service) => void;
   onDelete: (service: Service) => void;
 }) {
   return (
@@ -1005,14 +1137,24 @@ function ServicesSection({
                 <p className="text-sm text-slate-600">{service.description}</p>
                 {service.price && <p className="text-sm font-medium text-slate-950 mt-1">{service.price}</p>}
               </div>
-              <button
-                type="button"
-                onClick={() => onDelete(service)}
-                disabled={busyId === service.id}
-                className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-              >
-                Delete
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => onUpdatePrice(service)}
+                  disabled={editingId === service.id}
+                  className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {editingId === service.id ? 'Saving...' : 'Edit price'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(service)}
+                  disabled={busyId === service.id}
+                  className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </article>
         )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No services yet. Add your photography services.</p>}
@@ -1039,6 +1181,73 @@ function BookingsSection({ bookings }: { bookings: Booking[] }) {
           </div>
         </article>
       )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No bookings yet. Client inquiries will appear here.</p>}
+    </div>
+  );
+}
+
+function UsersSection({
+  users,
+  userEmail,
+  userMessage,
+  savingUser,
+  busyUserId,
+  onEmailChange,
+  onCreate,
+  onDelete,
+}: {
+  users: User[];
+  userEmail: string;
+  userMessage: MessageState;
+  savingUser: boolean;
+  busyUserId: string | null;
+  onEmailChange: (value: string) => void;
+  onCreate: () => void;
+  onDelete: (user: User) => void;
+}) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-semibold text-slate-500">Add admin</p>
+        <div className="mt-5 space-y-4">
+          <input
+            type="email"
+            value={userEmail}
+            onChange={(event) => onEmailChange(event.target.value)}
+            placeholder="admin@example.com"
+            className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+          />
+          <Message message={userMessage} />
+          <button
+            type="button"
+            onClick={onCreate}
+            disabled={savingUser}
+            className="w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+          >
+            {savingUser ? 'Adding admin...' : 'Add admin access'}
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {users.length ? users.map((user) => (
+          <article key={user.email} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">{user.email}</h3>
+                <p className="text-sm text-slate-500">Allowed admin email</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onDelete(user)}
+                disabled={busyUserId === user.email}
+                className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              >
+                {busyUserId === user.email ? 'Removing...' : 'Remove access'}
+              </button>
+            </div>
+          </article>
+        )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No admin emails configured yet.</p>}
+      </div>
     </div>
   );
 }

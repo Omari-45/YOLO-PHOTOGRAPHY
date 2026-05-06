@@ -94,6 +94,94 @@ create table if not exists bookings (
   created_at timestamp with time zone default now()
 );
 
+-- Keep public reads open for the website and allow admins to write/manage content
+-- with the anon key used by this client-side build. If you later move admin
+-- mutations behind server functions, tighten these policies accordingly.
+alter table site_settings enable row level security;
+alter table services enable row level security;
+alter table galleries enable row level security;
+alter table testimonials enable row level security;
+alter table bookings enable row level security;
+alter table site_visits enable row level security;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.site_settings
+    where auth.email() = any(admin_emails)
+  );
+$$;
+
+drop policy if exists "Public can read site settings" on site_settings;
+create policy "Public can read site settings" on site_settings for select using (true);
+
+drop policy if exists "Authenticated admins can update site settings" on site_settings;
+create policy "Authenticated admins can update site settings" on site_settings
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "Public can read services" on services;
+create policy "Public can read services" on services for select using (true);
+
+drop policy if exists "Authenticated admins can manage services" on services;
+create policy "Authenticated admins can manage services" on services
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "Public can read galleries" on galleries;
+create policy "Public can read galleries" on galleries for select using (true);
+
+drop policy if exists "Authenticated admins can manage galleries" on galleries;
+create policy "Authenticated admins can manage galleries" on galleries
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "Public can read published testimonials" on testimonials;
+create policy "Public can read published testimonials" on testimonials for select using (is_published = true);
+
+drop policy if exists "Anyone can submit testimonial drafts" on testimonials;
+create policy "Anyone can submit testimonial drafts" on testimonials
+  for insert
+  with check (is_published = false);
+
+drop policy if exists "Authenticated admins can manage testimonials" on testimonials;
+create policy "Authenticated admins can manage testimonials" on testimonials
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "Anyone can submit bookings" on bookings;
+create policy "Anyone can submit bookings" on bookings for insert with check (true);
+
+drop policy if exists "Authenticated admins can read bookings" on bookings;
+create policy "Authenticated admins can read bookings" on bookings for select using (public.is_admin());
+
+drop policy if exists "Anyone can track visits" on site_visits;
+create policy "Anyone can track visits" on site_visits for insert with check (true);
+
+insert into storage.buckets (id, name, public)
+values ('site-assets', 'site-assets', true), ('portfolios', 'portfolios', true)
+on conflict (id) do update set public = excluded.public;
+
+drop policy if exists "Public can read site asset files" on storage.objects;
+create policy "Public can read site asset files" on storage.objects
+  for select using (bucket_id in ('site-assets', 'portfolios'));
+
+drop policy if exists "Authenticated admins can manage site asset files" on storage.objects;
+create policy "Authenticated admins can manage site asset files" on storage.objects
+  for all
+  using (public.is_admin() and bucket_id in ('site-assets', 'portfolios'))
+  with check (public.is_admin() and bucket_id in ('site-assets', 'portfolios'));
+
 -- Notes:
 -- 1. Create Supabase Storage buckets: site-assets and portfolios.
 -- 2. Enable public or authenticated access for these buckets depending on your security policy.

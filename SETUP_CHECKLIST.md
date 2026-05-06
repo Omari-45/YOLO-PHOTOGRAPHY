@@ -5,28 +5,32 @@ Before going live, complete these steps:
 
 □ 1. UPDATE SUPABASE CREDENTIALS
 
-  In index.html (~line 342):
-  - Replace SUPABASE_URL with your project URL
-  - Replace SUPABASE_ANON_KEY with your anon key
+  In .env.local for local testing:
+  - Set NEXT_PUBLIC_SUPABASE_URL to your project URL (no /rest/v1/)
+  - Set NEXT_PUBLIC_SUPABASE_ANON_KEY to your anon key
+  - Set NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL to the owner's email
 
-  In main.js (~line 12):
-  - Replace SUPABASE_URL with your project URL
-  - Replace SUPABASE_ANON_KEY with your anon key
-  - Set ADMIN_EMAIL to the owner's email
+  In Vercel Project Settings > Environment Variables:
+  - Add the same three NEXT_PUBLIC_* variables
 
 □ 2. CREATE SUPABASE DATABASE
 
   - Go to your Supabase SQL editor
   - Copy and run all SQL from supabase-schema.sql
-  - Verify both tables created:
+  - Verify these tables created:
     * site_settings (1 row with a generated UUID id)
     * galleries (empty, ready for images)
+    * services (editable pricing/packages)
+    * testimonials (client reviews, draft until approved)
+    * bookings (home page booking requests)
+    * site_visits (basic analytics)
+  - Confirm site_settings.admin_emails includes every allowed admin email
 
 □ 3. CREATE STORAGE BUCKETS
 
   - Create bucket: site-assets
   - Create bucket: portfolios
-  - Set both to public access (or configure policies)
+  - Set both to public access (the schema also includes storage policies)
 
 □ 4. SEED INITIAL DATA (optional)
 
@@ -37,9 +41,10 @@ Before going live, complete these steps:
 
 □ 5. TEST LOCALLY
 
-  - Open index.html in Live Preview (public site)
   - Run the Next.js app
-  - Open /admin (protected admin panel)
+  - Open / for the public site
+  - Open /admin/login and sign in with an email in site_settings.admin_emails
+  - Confirm /admin redirects to login when signed out
 
 □ 6. UPLOAD FIRST LOGO (via dashboard)
 
@@ -59,8 +64,12 @@ Before going live, complete these steps:
   - Landing page shows logo and site name from Supabase
   - Hero section displays correctly with CTA buttons
   - Gallery filters work (All, Wedding, Ruracio, Studio, Editorial, Lifestyle)
-  - Admin login requires correct owner email
+  - Admin login requires an email listed in site_settings.admin_emails
   - Dashboard shows uploaded images and categories
+  - User Management can add/remove admin emails (owner email cannot be removed)
+  - Services can be added, deleted, and prices edited
+  - Reviews can be submitted from home page and published from admin
+  - Booking form saves requests and they appear in Admin > Bookings
   - Primary color is consistent and remains highly readable
   - PWA install prompt works and service worker caches the site
 

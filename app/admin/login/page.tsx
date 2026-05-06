@@ -6,6 +6,23 @@ import { supabase } from '../../../lib/supabaseClient';
 
 const adminEmail = process.env.NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL;
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+async function getAllowedAdminEmails() {
+  const fallback = adminEmail ? [normalizeEmail(adminEmail)] : [];
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('admin_emails')
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return fallback;
+  const emails = (data?.admin_emails as string[] | null | undefined)?.map(normalizeEmail).filter(Boolean);
+  return emails?.length ? emails : fallback;
+}
+
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,8 +32,12 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     async function checkSession() {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user?.email === adminEmail) {
+      const [{ data }, allowedEmails] = await Promise.all([
+        supabase.auth.getSession(),
+        getAllowedAdminEmails(),
+      ]);
+      const sessionEmail = normalizeEmail(data.session?.user?.email || '');
+      if (sessionEmail && allowedEmails.includes(sessionEmail)) {
         router.replace('/admin');
       }
     }
@@ -41,8 +62,11 @@ export default function AdminLoginPage() {
       return;
     }
 
-    if (data?.user?.email !== adminEmail) {
-      setMessage('Only the owner may access the admin dashboard.');
+    const allowedEmails = await getAllowedAdminEmails();
+    const userEmail = normalizeEmail(data?.user?.email || '');
+
+    if (!userEmail || !allowedEmails.includes(userEmail)) {
+      setMessage('Only authorized admins may access the admin dashboard.');
       await supabase.auth.signOut();
       return;
     }
@@ -99,7 +123,7 @@ export default function AdminLoginPage() {
 
         <div className="mt-10 rounded-3xl border border-slate-800 bg-slate-950/80 p-5 text-sm text-slate-400">
           <p className="font-medium text-slate-100">Owner access only</p>
-          <p className="mt-2">Use the owner email configured in <code className="rounded bg-slate-900 px-2 py-1 text-xs">NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL</code>.</p>
+          <p className="mt-2">Use an email listed in <code className="rounded bg-slate-900 px-2 py-1 text-xs">site_settings.admin_emails</code>.</p>
         </div>
       </div>
     </main>

@@ -1,17 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 type SiteSettings = {
   site_name?: string | null;
   logo_url?: string | null;
   primary_color?: string | null;
-  theme?: string | null;
   whatsapp_number?: string | null;
   business_location?: string | null;
   email?: string | null;
   phone?: string | null;
+  facebook_link?: string | null;
+  instagram_link?: string | null;
+  tiktok_link?: string | null;
 };
 
 type GalleryItem = {
@@ -20,91 +22,66 @@ type GalleryItem = {
   category: string;
 };
 
-const CATEGORY_OPTIONS = [
-  { value: 'All', label: 'All' },
-  { value: 'Wedding', label: 'Wedding (Ceremonies)' },
-  { value: 'Ruracio', label: 'Ruracio (Cultural events)' },
-  { value: 'Studio', label: 'Studio (Portraits/Product)' },
-  { value: 'Editorial', label: 'Editorial (Campaigns)' },
-  { value: 'Lifestyle', label: 'Lifestyle (Candid shots)' },
+type Service = {
+  id: number;
+  service_name: string;
+  description: string;
+  price: string | null;
+  icon: string | null;
+};
+
+type Testimonial = {
+  id: string;
+  client_name: string;
+  client_role: string | null;
+  quote: string;
+};
+
+const CATEGORY_OPTIONS = ['All', 'Wedding', 'Ruracio', 'Studio', 'Editorial', 'Lifestyle'];
+const DEFAULT_ACCENT = '#334155';
+
+const fallbackServices: Service[] = [
+  { id: -1, service_name: 'Wedding Photography', description: 'Full-day ceremony coverage with edited digital delivery.', price: 'From KSh 45,000', icon: 'Wedding' },
+  { id: -2, service_name: 'Studio Portraits', description: 'Clean portraits for families, teams, founders, and creatives.', price: 'From KSh 8,000', icon: 'Studio' },
+  { id: -3, service_name: 'Ruracio Coverage', description: 'Cultural event storytelling with detail, family, and emotion.', price: 'From KSh 35,000', icon: 'Event' },
 ];
 
-const DEFAULT_ACCENT = '#334155';
-const DEFAULT_BG = '#f8fafc';
-const DEFAULT_SURFACE = '#ffffff';
-const DEFAULT_TEXT = '#0f172a';
-
-function rgbToHex([r, g, b]: [number, number, number]) {
-  return `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
-}
-
-async function averageColorFromImage(src: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 32;
-      canvas.height = 32;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return reject(new Error('Canvas not supported'));
-      ctx.drawImage(img, 0, 0, 32, 32);
-      const data = ctx.getImageData(0, 0, 32, 32).data;
-      let red = 0;
-      let green = 0;
-      let blue = 0;
-      let count = 0;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3];
-        if (alpha < 30) continue;
-        red += data[i];
-        green += data[i + 1];
-        blue += data[i + 2];
-        count += 1;
-      }
-
-      if (!count) return resolve(DEFAULT_ACCENT);
-      const avg: [number, number, number] = [Math.round(red / count), Math.round(green / count), Math.round(blue / count)];
-      resolve(rgbToHex(avg));
-    };
-    img.onerror = reject;
-    img.src = src;
-  });
+function escapePhone(phone: string) {
+  return phone.replace(/[^\d+]/g, '');
 }
 
 export default function HomePage() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [isOffline, setIsOffline] = useState(false);
   const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT);
   const [loading, setLoading] = useState(true);
+  const [bookingMessage, setBookingMessage] = useState('');
+  const [bookingSaving, setBookingSaving] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [reviewSaving, setReviewSaving] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const [settingsResult, galleryResult] = await Promise.all([
+      const [settingsResult, galleryResult, servicesResult, testimonialsResult] = await Promise.all([
         supabase
           .from('site_settings')
-          .select('site_name,logo_url,primary_color,theme,whatsapp_number,business_location,email,phone')
+          .select('site_name,logo_url,primary_color,whatsapp_number,business_location,email,phone,facebook_link,instagram_link,tiktok_link')
           .limit(1)
           .maybeSingle(),
-        supabase
-          .from('galleries')
-          .select('id,image_url,category')
-          .order('created_at', { ascending: false })
-          .limit(18),
+        supabase.from('galleries').select('id,image_url,category').order('created_at', { ascending: false }).limit(18),
+        supabase.from('services').select('id,service_name,description,price,icon').order('created_at', { ascending: false }),
+        supabase.from('testimonials').select('id,client_name,client_role,quote').eq('is_published', true).order('created_at', { ascending: false }).limit(6),
       ]);
 
-      if (!settingsResult.error) {
-        setSettings(settingsResult.data || null);
-      }
-
-      if (!galleryResult.error) {
-        setGalleryItems((galleryResult.data as GalleryItem[]) || []);
-      }
-
+      if (!settingsResult.error) setSettings(settingsResult.data || null);
+      if (!galleryResult.error) setGalleryItems((galleryResult.data as GalleryItem[]) || []);
+      if (!servicesResult.error) setServices((servicesResult.data as Service[]) || []);
+      if (!testimonialsResult.error) setTestimonials((testimonialsResult.data as Testimonial[]) || []);
       setLoading(false);
     }
 
@@ -112,37 +89,12 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!settings?.logo_url) {
-      setAccentColor(settings?.primary_color || DEFAULT_ACCENT);
-      return;
-    }
-
-    let active = true;
-    averageColorFromImage(settings.logo_url)
-      .then((color) => {
-        if (!active) return;
-        setAccentColor(color);
-      })
-      .catch(() => {
-        setAccentColor(settings?.primary_color || DEFAULT_ACCENT);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [settings?.logo_url, settings?.primary_color]);
-
-  useEffect(() => {
-    document.documentElement.style.setProperty('--page-accent', accentColor);
-  }, [accentColor]);
+    setAccentColor(settings?.primary_color || DEFAULT_ACCENT);
+  }, [settings?.primary_color]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker
-      .register('/sw.js')
-      .catch(() => {
-        // Service worker registration is optional
-      });
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -157,9 +109,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (settings?.site_name) {
-      document.title = `${settings.site_name} — Professional Photographer`;
-    }
+    if (settings?.site_name) document.title = `${settings.site_name} - Professional Photographer`;
   }, [settings?.site_name]);
 
   const filteredGallery = useMemo(() => {
@@ -169,62 +119,96 @@ export default function HomePage() {
 
   const brandName = settings?.site_name || 'Yolo Photography';
   const logoUrl = settings?.logo_url;
-  const heroSubtitle = settings?.business_location ? `Based in ${settings.business_location}` : 'Premium photography for weddings, studio, and editorial clients.';
+  const visibleServices = services.length ? services : fallbackServices;
+  const whatsappHref = settings?.whatsapp_number
+    ? `https://wa.me/${escapePhone(settings.whatsapp_number)}?text=${encodeURIComponent(`Hi ${brandName}, I would like to book a photography session.`)}`
+    : '#booking';
+
+  async function handleBooking(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBookingSaving(true);
+    setBookingMessage('');
+    const form = new FormData(event.currentTarget);
+    const { error } = await supabase.from('bookings').insert([{
+      client_name: String(form.get('client_name') || '').trim(),
+      phone: String(form.get('phone') || '').trim(),
+      event_date: String(form.get('event_date') || ''),
+      service_type: String(form.get('service_type') || '').trim(),
+      event_location: String(form.get('event_location') || '').trim(),
+    }]);
+
+    setBookingSaving(false);
+    if (error) {
+      setBookingMessage(error.message);
+      return;
+    }
+
+    event.currentTarget.reset();
+    setBookingMessage('Booking request sent. We will contact you shortly.');
+  }
+
+  async function handleReview(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setReviewSaving(true);
+    setReviewMessage('');
+    const form = new FormData(event.currentTarget);
+    const { error } = await supabase.from('testimonials').insert([{
+      client_name: String(form.get('client_name') || '').trim(),
+      client_role: String(form.get('client_role') || '').trim() || null,
+      quote: String(form.get('quote') || '').trim(),
+      is_published: false,
+    }]);
+
+    setReviewSaving(false);
+    if (error) {
+      setReviewMessage(error.message);
+      return;
+    }
+
+    event.currentTarget.reset();
+    setReviewMessage('Thank you. Your review will appear after approval.');
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950" style={{ '--accent': accentColor } as CSSProperties}>
-      <section className="relative overflow-hidden px-6 py-20 lg:px-12">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,_rgba(51,65,85,0.12),_transparent_40%)]" />
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-16 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div className="space-y-8">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-950 text-white shadow-sm">
-                  {logoUrl ? <img src={logoUrl} alt={`${brandName} logo`} className="h-10 w-auto object-contain" /> : <span className="text-lg font-semibold">Y</span>}
-                </div>
-                <div>
-                  <p className="text-sm uppercase tracking-[0.35em] text-slate-500">{brandName}</p>
-                  <p className="text-lg font-semibold text-slate-900">Photography studio</p>
-                </div>
-              </div>
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 px-6 backdrop-blur lg:px-12">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6">
+          <a href="#" className="flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-950 text-white">
+              {logoUrl ? <img src={logoUrl} alt={`${brandName} logo`} className="h-8 w-auto object-contain" /> : 'Y'}
+            </span>
+            <span className="font-semibold text-slate-950">{brandName}</span>
+          </a>
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex">
+            <a href="#portfolio" className="hover:text-slate-950">Portfolio</a>
+            <a href="#services" className="hover:text-slate-950">Services</a>
+            <a href="#reviews" className="hover:text-slate-950">Reviews</a>
+            <a href="#booking" className="hover:text-slate-950">Booking</a>
+            <a href="/admin" className="hover:text-slate-950">Admin</a>
+          </nav>
+        </div>
+      </header>
 
-              <div className="max-w-3xl space-y-6">
-                <h1 className="text-5xl font-semibold tracking-tight text-slate-950 sm:text-6xl">Premium photography for weddings, editorial campaigns, and modern studio work.</h1>
-                <p className="text-lg leading-8 text-slate-600">{heroSubtitle}</p>
-              </div>
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <a href="#portfolio" className="inline-flex items-center justify-center rounded-full bg-slate-950 px-8 py-4 text-sm font-semibold text-white transition hover:bg-slate-800">
-                  Explore Portfolio
-                </a>
-                <a href="mailto:hello@yolophotography.com" className="inline-flex items-center justify-center rounded-full border border-slate-900 px-8 py-4 text-sm font-semibold text-slate-950 transition hover:bg-slate-100">
-                  Contact Studio
-                </a>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
-                <span className="rounded-full bg-slate-100 px-3 py-2">{settings?.email ?? 'Email available after setup'}</span>
-                <span className="rounded-full bg-slate-100 px-3 py-2">{settings?.phone ?? 'Phone available after setup'}</span>
-                <span className={`rounded-full px-3 py-2 ${isOffline ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                  {isOffline ? 'Offline mode' : 'Connected' }
-                </span>
-              </div>
+      <section className="px-6 py-20 lg:px-12">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div className="space-y-8">
+            <p className="text-sm uppercase tracking-[0.35em] text-slate-500">{settings?.business_location || 'Voi, Kenya'}</p>
+            <h1 className="text-5xl font-semibold tracking-tight text-slate-950 sm:text-6xl">Photography for weddings, studio portraits, events, and brand stories.</h1>
+            <p className="max-w-2xl text-lg leading-8 text-slate-600">Book a polished session, browse live packages, and share reviews directly from the site.</p>
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <a href="#booking" className="inline-flex justify-center rounded-full bg-slate-950 px-8 py-4 text-sm font-semibold text-white hover:bg-slate-800">Book a Session</a>
+              <a href="#portfolio" className="inline-flex justify-center rounded-full border border-slate-900 px-8 py-4 text-sm font-semibold text-slate-950 hover:bg-white">View Portfolio</a>
             </div>
+            <div className="flex flex-wrap gap-3 text-sm text-slate-700">
+              <span className="rounded-full bg-white px-3 py-2 shadow-sm">{settings?.email || 'Email after setup'}</span>
+              <span className="rounded-full bg-white px-3 py-2 shadow-sm">{settings?.phone || 'Phone after setup'}</span>
+              <span className={`rounded-full px-3 py-2 shadow-sm ${isOffline ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>{isOffline ? 'Offline mode' : 'Connected'}</span>
+            </div>
+          </div>
 
-            <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white p-4 shadow-soft">
-              <div className="aspect-[4/5] overflow-hidden rounded-[28px] bg-slate-950">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Brand logo" className="h-full w-full object-contain object-center opacity-90" />
-                ) : (
-                  <div className="grid h-full place-items-center bg-slate-950 text-white">
-                    <p className="text-xl font-semibold">Your logo</p>
-                  </div>
-                )}
-              </div>
-              <div className="mt-5 space-y-3 text-sm text-slate-600">
-                <p>Dynamic branding loads from Supabase site settings.</p>
-                <p>Logo uploads and site name sync automatically with the admin dashboard.</p>
-              </div>
+          <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+            <div className="aspect-[4/5] bg-slate-900">
+              {filteredGallery[0] ? <img src={filteredGallery[0].image_url} alt={filteredGallery[0].category} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center p-8 text-center text-white">{logoUrl ? <img src={logoUrl} alt="" className="max-h-48 object-contain" /> : 'Upload portfolio images from admin'}</div>}
             </div>
           </div>
         </div>
@@ -237,79 +221,108 @@ export default function HomePage() {
               <p className="text-sm uppercase tracking-[0.35em] text-slate-600">Portfolio</p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Explore work by category</h2>
             </div>
-            <p className="max-w-xl text-sm leading-7 text-slate-600">Filter the gallery by event type and discover your next photography style.</p>
+            <div className="flex flex-wrap gap-3">
+              {CATEGORY_OPTIONS.map((category) => (
+                <button key={category} type="button" onClick={() => setActiveCategory(category)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeCategory === category ? 'bg-slate-950 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}>
+                  {category}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            {CATEGORY_OPTIONS.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setActiveCategory(item.value)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeCategory === item.value ? 'bg-slate-950 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'}`}
-              >
-                {item.label}
-              </button>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {loading ? Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-72 animate-pulse rounded-[24px] bg-slate-200" />) : filteredGallery.length ? filteredGallery.map((item) => (
+              <article key={item.id} className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+                <div className="relative h-72 bg-slate-100">
+                  <img src={item.image_url} alt={item.category} className="h-full w-full object-cover" />
+                  {logoUrl ? <img src={logoUrl} alt="" className="pointer-events-none absolute bottom-4 right-4 max-h-12 max-w-28 object-contain opacity-60" /> : null}
+                </div>
+                <div className="p-5">
+                  <p className="text-sm font-semibold text-slate-500">{item.category}</p>
+                </div>
+              </article>
+            )) : <p className="col-span-full rounded-[24px] border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">No images yet. Upload your first gallery image from admin.</p>}
+          </div>
+        </div>
+      </section>
+
+      <section id="services" className="bg-white px-6 py-20 lg:px-12">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-sm uppercase tracking-[0.35em] text-slate-600">Services</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Packages and pricing</h2>
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {visibleServices.map((service) => (
+              <article key={service.id} className="rounded-2xl border border-slate-200 p-6">
+                <p className="text-sm font-semibold text-slate-500">{service.icon || 'Photography'}</p>
+                <h3 className="mt-4 text-xl font-semibold text-slate-950">{service.service_name}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{service.description}</p>
+                <p className="mt-6 text-sm font-bold text-slate-950">{service.price || 'Price on request'}</p>
+              </article>
             ))}
           </div>
+        </div>
+      </section>
 
-          <div className="mt-10 grid gap-6 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
-            {loading ? (
-              Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="mb-5 h-56 rounded-[24px] bg-slate-200" />
-                  <div className="h-4 w-3/4 rounded-full bg-slate-200" />
-                  <div className="mt-3 h-3 w-1/2 rounded-full bg-slate-200" />
-                </div>
-              ))
-            ) : filteredGallery.length ? (
-              filteredGallery.map((item) => (
-                <article key={item.id} className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1">
-                  <div className="relative h-72 bg-slate-100">
-                    <img src={item.image_url} alt={item.category} className="h-full w-full object-cover" />
-                    <span className="absolute left-4 top-4 rounded-full bg-slate-950/90 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">{item.category}</span>
-                  </div>
-                  <div className="space-y-3 p-6">
-                    <h3 className="text-xl font-semibold text-slate-950">{item.category}</h3>
-                    <p className="text-sm leading-6 text-slate-600">{item.category === 'Wedding' ? 'Ceremonial photography with cinematic clarity.' : item.category === 'Studio' ? 'Studio portraits, product, and creative set design.' : item.category === 'Ruracio' ? 'Cultural event storytelling with colour and emotion.' : item.category === 'Editorial' ? 'Campaign imagery designed for modern brands.' : 'Lifestyle stories captured naturally on location.'}</p>
-                  </div>
+      <section id="reviews" className="px-6 py-20 lg:px-12">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="text-sm uppercase tracking-[0.35em] text-slate-600">Reviews</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Client testimonials</h2>
+            <div className="mt-8 grid gap-4">
+              {testimonials.length ? testimonials.map((item) => (
+                <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <p className="text-sm leading-7 text-slate-700">&ldquo;{item.quote}&rdquo;</p>
+                  <p className="mt-4 font-semibold text-slate-950">{item.client_name}</p>
+                  <p className="text-sm text-slate-500">{item.client_role || 'Client'}</p>
                 </article>
-              ))
-            ) : (
-              <div className="col-span-full rounded-[28px] border border-dashed border-slate-300 bg-white/80 p-12 text-center text-slate-600 shadow-sm">
-                <p className="text-lg font-semibold">No images are available yet.</p>
-                <p className="mt-3 max-w-xl mx-auto text-sm leading-7">Upload your portfolio from the admin dashboard, then refresh to see the gallery here.</p>
-              </div>
-            )}
+              )) : <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-600">No published reviews yet.</p>}
+            </div>
           </div>
+
+          <form onSubmit={handleReview} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-slate-950">Add a review</h3>
+            <input name="client_name" required placeholder="Full name" className="mt-5 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" />
+            <input name="client_role" placeholder="Session type, optional" className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" />
+            <textarea name="quote" required rows={5} placeholder="Your testimonial" className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" />
+            {reviewMessage ? <p className="mt-3 text-sm text-slate-600">{reviewMessage}</p> : null}
+            <button disabled={reviewSaving} className="mt-5 w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{reviewSaving ? 'Sending...' : 'Submit review'}</button>
+          </form>
         </div>
       </section>
 
-      <section className="px-6 py-20 lg:px-12">
-        <div className="mx-auto max-w-6xl rounded-[32px] border border-slate-200 bg-white p-10 shadow-soft">
-          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-slate-600">Supportive branding</p>
-              <h2 className="mt-4 text-4xl font-semibold text-slate-950">Minimal styling that keeps attention on your work.</h2>
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-600">The site adapts brand visuals from Supabase, while preserving strong contrast and clean readability across the entire experience.</p>
-            </div>
-            <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-8">
-              <div className="mb-6 flex items-center gap-4">
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">A</span>
-                <div>
-                  <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Theme</p>
-                  <p className="font-semibold text-slate-950">Professional and balanced</p>
-                </div>
-              </div>
-              <div className="grid gap-4 text-sm text-slate-600">
-                <p>Dynamic accent color from logo or brand settings</p>
-                <p>Responsive columns and mobile-first gallery layout</p>
-                <p>Fast load with offline-ready service worker and manifest</p>
-              </div>
-            </div>
+      <section id="booking" className="bg-slate-900 px-6 py-20 text-white lg:px-12">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div>
+            <p className="text-sm uppercase tracking-[0.35em] text-slate-400">Booking</p>
+            <h2 className="mt-3 text-4xl font-semibold tracking-tight">Book from the home page</h2>
+            <p className="mt-5 text-sm leading-7 text-slate-300">Client requests save to Supabase and appear in the admin Bookings tab.</p>
+            <a href={whatsappHref} className="mt-8 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950">WhatsApp</a>
           </div>
+          <form onSubmit={handleBooking} className="grid gap-4 rounded-2xl border border-white/10 bg-white p-6 text-slate-950 shadow-sm sm:grid-cols-2">
+            <input name="client_name" required placeholder="Full name" className="rounded-xl border border-slate-300 px-4 py-3 text-sm" />
+            <input name="phone" required placeholder="Phone number" className="rounded-xl border border-slate-300 px-4 py-3 text-sm" />
+            <input name="event_date" required type="date" className="rounded-xl border border-slate-300 px-4 py-3 text-sm" />
+            <select name="service_type" required className="rounded-xl border border-slate-300 px-4 py-3 text-sm">
+              <option value="">Select service</option>
+              {visibleServices.map((service) => <option key={service.id} value={service.service_name}>{service.service_name}</option>)}
+            </select>
+            <input name="event_location" required placeholder="Event location" className="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2" />
+            {bookingMessage ? <p className="text-sm text-slate-600 sm:col-span-2">{bookingMessage}</p> : null}
+            <button disabled={bookingSaving} className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 sm:col-span-2">{bookingSaving ? 'Sending...' : 'Send booking request'}</button>
+          </form>
         </div>
       </section>
+
+      <footer className="bg-slate-950 px-6 py-10 text-slate-400 lg:px-12">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm">&copy; {new Date().getFullYear()} {brandName}. All rights reserved.</p>
+          <div className="flex gap-4 text-sm font-semibold">
+            {settings?.facebook_link ? <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="hover:text-white">Facebook</a> : null}
+            {settings?.instagram_link ? <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="hover:text-white">Instagram</a> : null}
+            {settings?.tiktok_link ? <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="hover:text-white">TikTok</a> : null}
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

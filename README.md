@@ -1,107 +1,76 @@
 # Yolo Photography
 
-A premium, high-conversion photography portfolio website built with modern JavaScript, Tailwind CSS (CDN), and Supabase integration.
+A Next.js photography portfolio and admin dashboard backed by Supabase. The Vercel deployment uses the `app/` routes, with `app/page.tsx` as the public home page and `app/admin` as the protected admin area.
 
-## 📋 What is included
+## What Is Included
 
-- **index.html** — High-conversion landing page with hero, dynamic gallery, and services section
-- **/admin** — Protected Next.js admin dashboard for branding, gallery, and testimonials
-- **main.js** — Modern ES6 JavaScript with Supabase CDN integration
-- **styles/site.css** — Premium minimalist styling
+- `app/page.tsx` - Public landing page with portfolio, services, reviews, booking, footer, and social links.
+- `app/admin/page.tsx` - Protected admin dashboard for branding, gallery, reviews, services, bookings, and user management.
+- `app/admin/login/page.tsx` - Supabase Auth login for allowed admin emails.
+- `lib/supabaseClient.ts` - Shared Supabase client using Vercel/Next environment variables.
+- `supabase-schema.sql` - Tables, starter data, RLS policies, and storage policies.
+- `index.html`, `main.js`, `dashboard.html`, `admin.html` - Legacy/static preview files. They are not the primary Vercel app when Vercel detects this as a Next.js project.
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. Update Supabase Credentials
+1. Install dependencies:
 
-In both **index.html** (line ~342) and **main.js** (line ~12), replace:
-
-```javascript
-const SUPABASE_URL = 'https://your-project-id.supabase.co';
-const SUPABASE_ANON_KEY = 'your-public-anon-key';
-const ADMIN_EMAIL = 'owner@example.com';  // (main.js only)
+```bash
+npm install
 ```
 
-### 2. Create Supabase Tables & Buckets
+2. Set local environment variables in `.env.local`:
 
-1. Run the SQL from `supabase-schema.sql` in your Supabase SQL editor
-2. Create two Storage buckets:
-   - `site-assets` (for logo uploads)
-   - `portfolios` (for gallery images)
-3. Set both buckets to public access or use policies based on your needs
-
-### 3. Preview in VS Code
-
-- Open `index.html` in Live Preview
-- Run the Next.js app and open `/admin` for the protected admin dashboard
-
-**No Node.js required!** Everything runs via CDN.
-
-## 📄 File Structure
-
-```
-YOLO PHOTOGRAPHER/
-├── index.html              # Public landing page
-├── app/admin/page.tsx      # Protected admin panel
-├── app/admin/login/page.tsx # Admin login page
-├── main.js                 # Core ES6 logic (Supabase integration)
-├── styles/
-│   └── site.css            # Styling for admin dashboard
-├── supabase-schema.sql     # Database schema
-├── README.md               # This file
-└── [deprecated: app/, lib/, next.config.mjs, etc.]
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL=owner@example.com
 ```
 
-## 🎨 Features
+Do not include `/rest/v1/` in `NEXT_PUBLIC_SUPABASE_URL`.
 
-### Landing Page (index.html)
-- Dynamic branding from `site_settings` table
-- Logo and primary color fetch from Supabase
-- Full-width hero section with CTA
-- Portfolio gallery with category filters (All, Wedding, Ruracio, Studio)
-- Responsive grid (3 columns desktop, 1 column mobile)
-- Service showcase with pricing
-- Contact section
-- Graceful empty states for missing images
+3. Run the Supabase setup:
 
-### Admin Dashboard (/admin)
-- Secure Supabase Auth login
-- Logo upload to Supabase Storage
-- Automatic primary color extraction from logo
-- Portfolio media manager with drag-and-drop
-- Gallery preview and delete functionality
-- Real-time theme updates
+- Open the Supabase SQL editor.
+- Run all SQL from `supabase-schema.sql`.
+- Confirm `site_settings.admin_emails` includes the owner email and any other admins.
+- Confirm storage buckets `site-assets` and `portfolios` exist and are public.
 
-## 🔐 Security
+4. Start the local app:
 
-- Owner-only admin access via email verification
-- Supabase Auth handles password security
-- Storage bucket access controlled via Supabase policies
-- Session validation on dashboard load
+```bash
+npm run dev
+```
 
-## 🎯 Recommended Categories
+Open `/` for the public site and `/admin/login` for admin access.
 
-When uploading media, use these category tags:
-- **Studio** — Portrait and product photography
-- **Wedding** — Ceremonies and receptions
-- **Ruracio** — Cultural celebration events
-- **Editorial** — Magazine and campaign work
-- **Lifestyle** — Candid and lifestyle shots
+## Vercel Deployment
 
-## 💡 Tips
+Set these environment variables in Vercel:
 
-- **Logo Best Practices**: Use PNG with transparency for best results. Primary color is auto-extracted.
-- **Gallery Management**: Delete old images when adding seasonal collections.
-- **Mobile Optimization**: The landing page is fully responsive.
-- **Custom Domain**: Deploy to Vercel, Netlify, or any static host.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL`
 
-## 🛠 Troubleshooting
+Then deploy from the latest GitHub commit on `main`. Vercel will build the Next.js app from `app/`; uncommitted local changes will not appear on Vercel until they are committed and pushed.
 
-**"Supabase credentials must be updated"**: Open `index.html` and `main.js`, then set your credentials.
+## Features
 
-**Empty gallery**: Make sure you've uploaded images to the `galleries` table with a valid `storage_path` pointing to `portfolios` bucket files.
+- Dynamic site name, logo, contact details, and social links from Supabase.
+- Portfolio gallery with categories: Studio, Wedding, Ruracio, Editorial, Lifestyle.
+- Logo and gallery uploads to Supabase Storage.
+- Client reviews submitted from the home page and approved from admin.
+- Services with editable pricing.
+- Booking form on the home page with requests visible in admin.
+- Admin user management through `site_settings.admin_emails`.
+- PWA manifest and service worker assets.
 
-**Logo not showing**: Verify the logo file exists in the `site-assets` bucket and the `logo_url` is correctly saved in `site_settings`.
+## Troubleshooting
 
----
+**Admin opens without the right user:** Confirm `/admin` redirects when signed out, and confirm the signed-in email is listed in `site_settings.admin_emails`.
 
-Built with 💛 for premium photography studios.
+**Uploads fail:** Re-run the storage policy section in `supabase-schema.sql`, and verify the `site-assets` and `portfolios` buckets exist.
+
+**Gallery, services, reviews, or bookings do not save:** Re-run `supabase-schema.sql` so the RLS policies match the app.
+
+**Vercel does not show local fixes:** Commit and push the local changes to GitHub, then check the Vercel preview or production deployment for that commit.

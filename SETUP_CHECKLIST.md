@@ -56,20 +56,28 @@ Before going live, complete these steps:
 
 □ 8. VERIFY LIVE FEATURES
 
-  - Landing page shows logo
-  - Hero section displays correctly
-  - Gallery filters work (All, Wedding, Ruracio, Studio)
-  - Admin login requires correct email
-  - Dashboard shows uploaded images
-  - Primary color is consistent everywhere
+  - Landing page shows logo and site name from Supabase
+  - Hero section displays correctly with CTA buttons
+  - Gallery filters work (All, Wedding, Ruracio, Studio, Editorial, Lifestyle)
+  - Admin login requires correct owner email
+  - Dashboard shows uploaded images and categories
+  - Primary color is consistent and remains highly readable
+  - PWA install prompt works and service worker caches the site
 
-□ 9. DEPLOY (when ready)
+□ 9. VERIFY VERCEL PREVIEW
+
+  - Confirm the latest commit appears in the Vercel preview deployment
+  - Open the preview URL and verify the landing page loads
+  - Confirm the admin route (/admin) is protected and redirects to login if unauthorized
+  - Check browser console for no Supabase or PWA errors
+
+□ 10. DEPLOY (when ready)
 
   - Push files to GitHub
-  - Deploy to Vercel, Netlify, or your hosting
-  - Ensure Supabase is accessible from your domain
+  - Deploy to Vercel
+  - Ensure Supabase environment variables are set in Vercel
 
-□ 10. MONITOR & MAINTAIN
+□ 11. MONITOR & MAINTAIN
 
   - Add new gallery images regularly
   - Update logo if rebranding

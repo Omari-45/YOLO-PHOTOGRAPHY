@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -8,7 +8,13 @@ const adminEmail = process.env.NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL;
 const logoBucket = 'site-assets';
 const galleryBucket = 'portfolios';
 const brandAccentColor = '#334155';
-const categories = ['Studio', 'Wedding', 'Ruracio', 'Editorial', 'Lifestyle'];
+const categories = [
+  { value: 'Studio', label: 'Studio (Portraits/Product)' },
+  { value: 'Wedding', label: 'Wedding (Ceremonies)' },
+  { value: 'Ruracio', label: 'Ruracio (Cultural events)' },
+  { value: 'Editorial', label: 'Editorial (Campaigns)' },
+  { value: 'Lifestyle', label: 'Lifestyle (Candid shots)' },
+];
 
 type AdminSection = 'branding' | 'gallery' | 'testimonials' | 'services' | 'bookings';
 
@@ -117,10 +123,11 @@ export default function AdminPage() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [galleryFile, setGalleryFile] = useState<File | null>(null);
   const [galleryPreview, setGalleryPreview] = useState('');
-  const [galleryCategory, setGalleryCategory] = useState(categories[0]);
+  const [galleryCategory, setGalleryCategory] = useState(categories[0].value);
   const [galleryMessage, setGalleryMessage] = useState<MessageState>({ type: 'idle', text: '' });
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [deletingGalleryId, setDeletingGalleryId] = useState<number | null>(null);
+  const [themeAccent, setThemeAccent] = useState(brandAccentColor);
 
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [testimonialName, setTestimonialName] = useState('');
@@ -142,9 +149,73 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
 
   const pageStyle = useMemo(
-    () => ({ '--theme-accent': brandAccentColor } as CSSProperties),
-    []
+    () => ({ '--theme-accent': themeAccent } as CSSProperties),
+    [themeAccent]
   );
+
+  useEffect(() => {
+    if (!logoUrl) return;
+
+    let active = true;
+
+    async function computeAccent() {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = logoUrl;
+
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Unable to load logo for theme extraction'));
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const context = canvas.getContext('2d');
+        if (!context) return;
+        context.drawImage(img, 0, 0, 32, 32);
+        const imageData = context.getImageData(0, 0, 32, 32).data;
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let count = 0;
+
+        for (let i = 0; i < imageData.length; i += 4) {
+          const alpha = imageData[i + 3];
+          if (alpha < 50) continue;
+          r += imageData[i];
+          g += imageData[i + 1];
+          b += imageData[i + 2];
+          count += 1;
+        }
+
+        if (!count) return;
+
+        const averageColor = `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
+        if (active) setThemeAccent(averageColor);
+      } catch {
+        if (active) setThemeAccent(brandAccentColor);
+      }
+    }
+
+    computeAccent();
+    return () => {
+      active = false;
+    };
+  }, [logoUrl]);
+
+  function preventDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setGalleryFile(file);
+    }
+  }
 
   useEffect(() => {
     async function checkAccess() {
@@ -544,6 +615,8 @@ export default function AdminPage() {
                 onCategoryChange={setGalleryCategory}
                 onUpload={handleGalleryUpload}
                 onDelete={handleDeleteGallery}
+                onDrop={handleDrop}
+                onDragOver={preventDrop}
               />
             ) : null}
 
@@ -669,6 +742,8 @@ function GallerySection({
   onCategoryChange,
   onUpload,
   onDelete,
+  onDrop,
+  onDragOver,
 }: {
   logoUrl: string;
   items: GalleryItem[];
@@ -681,20 +756,27 @@ function GallerySection({
   onCategoryChange: (value: string) => void;
   onUpload: () => void;
   onDelete: (item: GalleryItem) => void;
+  onDrop: (event: DragEvent<HTMLDivElement>) => void;
+  onDragOver: (event: DragEvent<HTMLDivElement>) => void;
 }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <label className="block text-sm font-semibold text-slate-700">
-            Gallery image
+          <div
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-slate-400"
+          >
+            <p className="text-sm font-semibold text-slate-700">Drag & drop a portfolio image</p>
+            <p className="mt-2 text-sm text-slate-500">Or choose a file below</p>
             <input
               type="file"
               accept="image/*"
               onChange={(event) => onFileChange(event.target.files?.[0] || null)}
-              className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm"
+              className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm"
             />
-          </label>
+          </div>
 
           <label className="mt-5 block text-sm font-semibold text-slate-700">
             Category
@@ -703,7 +785,11 @@ function GallerySection({
               onChange={(event) => onCategoryChange(event.target.value)}
               className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm"
             >
-              {categories.map((item) => <option key={item}>{item}</option>)}
+              {categories.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
             </select>
           </label>
 

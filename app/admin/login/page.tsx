@@ -5,13 +5,17 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabaseClient';
 
 const adminEmail = process.env.NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL;
+const superAdminEmails = ['davidomari006@gmail.com'];
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
 async function getAllowedAdminEmails() {
-  const fallback = adminEmail ? [normalizeEmail(adminEmail)] : [];
+  const fallback = Array.from(new Set([
+    ...superAdminEmails,
+    ...(adminEmail ? [adminEmail] : []),
+  ].map(normalizeEmail).filter(Boolean)));
   const { data, error } = await supabase
     .from('site_settings')
     .select('admin_emails')
@@ -20,7 +24,7 @@ async function getAllowedAdminEmails() {
 
   if (error) return fallback;
   const emails = (data?.admin_emails as string[] | null | undefined)?.map(normalizeEmail).filter(Boolean);
-  return emails?.length ? emails : fallback;
+  return Array.from(new Set([...(emails || []), ...fallback]));
 }
 
 export default function AdminLoginPage() {

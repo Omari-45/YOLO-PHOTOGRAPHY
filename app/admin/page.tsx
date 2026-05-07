@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
 const adminEmail = process.env.NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL;
+const superAdminEmails = ['davidomari006@gmail.com'];
 const logoBucket = 'site-assets';
 const galleryBucket = 'portfolios';
 const brandAccentColor = '#334155';
@@ -120,11 +121,14 @@ function normalizeEmail(email: string) {
 }
 
 async function getAllowedAdminEmails() {
-  const fallback = adminEmail ? [normalizeEmail(adminEmail)] : [];
+  const fallback = Array.from(new Set([
+    ...superAdminEmails,
+    ...(adminEmail ? [adminEmail] : []),
+  ].map(normalizeEmail).filter(Boolean)));
   const { data, error } = await fetchSiteSettings('admin_emails');
   if (error) return fallback;
   const emails = data?.admin_emails?.map(normalizeEmail).filter(Boolean);
-  return emails?.length ? emails : fallback;
+  return Array.from(new Set([...(emails || []), ...fallback]));
 }
 
 export default function AdminPage() {

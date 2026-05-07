@@ -70,24 +70,48 @@ export default function UpdatePasswordPage() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [sessionReady, setSessionReady] = useState(false);
   const [socialLinks, setSocialLinks] = useState<SocialLinks | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     async function prepareRecoverySession() {
-      const code = new URLSearchParams(window.location.search).get('code');
+      setCheckingSession(true);
 
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          setMessage(error.message);
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const code = searchParams.get('code');
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        } else if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+
+          window.history.replaceState(null, document.title, window.location.pathname);
+        }
+
+        const { data } = await supabase.auth.getSession();
+        setSessionReady(Boolean(data.session));
+
+        if (!data.session) {
+          setMessage('Open this page from the latest password reset email to update your password.');
           setMessageType('error');
         }
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Unable to verify the password reset link.');
+        setMessageType('error');
+      } finally {
+        setCheckingSession(false);
       }
-
-      const { data } = await supabase.auth.getSession();
-      setSessionReady(Boolean(data.session));
     }
 
     async function loadSocialLinks() {
@@ -107,6 +131,12 @@ export default function UpdatePasswordPage() {
   async function handleUpdatePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage('');
+
+    if (!sessionReady) {
+      setMessage('Open this page from the latest password reset email to update your password.');
+      setMessageType('error');
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       setMessage('Passwords do not match.');
@@ -196,10 +226,10 @@ export default function UpdatePasswordPage() {
             ) : (
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || checkingSession || !sessionReady}
                 className="inline-flex w-full items-center justify-center rounded-full bg-accent px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[#b38f57] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? 'Updating...' : 'Update Password'}
+                {checkingSession ? 'Checking reset link...' : loading ? 'Updating...' : 'Update Password'}
               </button>
             )}
           </form>

@@ -1,6 +1,5 @@
-const CACHE_NAME = 'yolo-photography-cache-v1';
+const CACHE_NAME = 'yolo-photography-cache-v2';
 const CACHE_URLS = [
-  '/',
   '/manifest.json',
   '/icon.svg',
 ];
@@ -28,13 +27,21 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match('/')))
+    );
+    return;
+  }
 
-      return fetch(event.request)
+  event.respondWith(
+    fetch(event.request)
         .then((networkResponse) => {
           if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
             return networkResponse;
@@ -44,7 +51,6 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
           return networkResponse;
         })
-        .catch(() => caches.match('/'));
-    })
+      .catch(() => caches.match(event.request))
   );
 });

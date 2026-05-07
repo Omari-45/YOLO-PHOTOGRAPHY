@@ -151,6 +151,7 @@ export default function HomePage() {
   const whatsappHref = settings?.whatsapp_number
     ? `https://wa.me/${escapePhone(settings.whatsapp_number)}?text=${encodeURIComponent(`Hi ${brandName}, I would like to book a photography session.`)}`
     : '#booking';
+  const hasWhatsapp = Boolean(settings?.whatsapp_number);
 
   async function handleBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -475,6 +476,18 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {hasWhatsapp ? (
+        <a
+          href={whatsappHref}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#25d366] text-white shadow-xl shadow-slate-950/20 transition hover:scale-105 hover:bg-[#1ebe5d] focus:outline-none focus:ring-4 focus:ring-[#25d366]/30"
+          aria-label="Chat with Yolo Photography on WhatsApp"
+        >
+          <MessageCircle className="h-7 w-7" />
+        </a>
+      ) : null}
     </main>
   );
 }

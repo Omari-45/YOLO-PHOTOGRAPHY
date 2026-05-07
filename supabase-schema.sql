@@ -133,7 +133,8 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists (
+  select auth.email() = 'davidomari006@gmail.com'
+    or exists (
     select 1
     from public.site_settings
     where auth.email() = any(admin_emails)

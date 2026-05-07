@@ -28,6 +28,9 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -72,6 +75,33 @@ export default function AdminLoginPage() {
     }
 
     router.push('/admin');
+  }
+
+  async function handleResetPassword() {
+    const targetEmail = normalizeEmail((email || resetEmail).trim());
+
+    if (!targetEmail) {
+      setShowResetForm(true);
+      setMessage('Enter your email to receive a password reset link.');
+      return;
+    }
+
+    setResetLoading(true);
+    setMessage('');
+
+    const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/admin/login` : undefined,
+    });
+
+    setResetLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage('Password reset email sent! Check your inbox and spam folder.');
+    setShowResetForm(false);
   }
 
   return (
@@ -119,12 +149,59 @@ export default function AdminLoginPage() {
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
+
+          <div className="mt-4 flex flex-col items-center gap-3 text-center">
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              className="text-sm text-slate-400 transition hover:text-slate-100"
+            >
+              Forgot Password?
+            </button>
+
+            {showResetForm ? (
+              <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/90 p-4 text-left">
+                <p className="mb-3 text-sm text-slate-400">Enter the email address where you want the reset link sent.</p>
+                <label className="mb-2 block text-sm font-medium text-slate-200">Reset email</label>
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(event) => setResetEmail(event.target.value)}
+                  placeholder="owner@example.com"
+                  className="w-full rounded-3xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                />
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={handleResetPassword}
+                    disabled={resetLoading}
+                    className="inline-flex w-full items-center justify-center rounded-full bg-accent px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[#b38f57] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+                  >
+                    {resetLoading ? 'Sending...' : 'Send reset link'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowResetForm(false);
+                      setMessage('');
+                    }}
+                    className="text-sm text-slate-400 transition hover:text-slate-100"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </form>
 
-        <div className="mt-10 rounded-3xl border border-slate-800 bg-slate-950/80 p-5 text-sm text-slate-400">
-          <p className="font-medium text-slate-100">Owner access only</p>
-          <p className="mt-2">Use an email listed in <code className="rounded bg-slate-900 px-2 py-1 text-xs">site_settings.admin_emails</code>.</p>
-        </div>
+        <button
+          type="button"
+          onClick={() => router.push('/')}
+          className="mt-8 text-sm font-semibold text-slate-300 transition hover:text-white"
+        >
+          Back to Home
+        </button>
       </div>
     </main>
   );

@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties, type SVGProps } from 'react';
+import { MessageCircle, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 type SiteSettings = {
@@ -48,6 +49,33 @@ const fallbackServices: Service[] = [
 
 function escapePhone(phone: string) {
   return phone.replace(/[^\d+]/g, '');
+}
+
+function FacebookIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M18 2h-3a4 4 0 0 0-4 4v3H8v4h3v8h4v-8h3l1-4h-4V6a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
+function InstagramIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 11.37 7 4 4 0 0 1 16 11.37z" />
+      <path d="M17.5 6.5h.01" />
+    </svg>
+  );
+}
+
+function TiktokIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M13 2v8a4 4 0 1 0 4 4V6h3" />
+      <path d="M14 22a4 4 0 1 1 0-8" />
+    </svg>
+  );
 }
 
 export default function HomePage() {
@@ -307,19 +335,116 @@ export default function HomePage() {
               {visibleServices.map((service) => <option key={service.id} value={service.service_name}>{service.service_name}</option>)}
             </select>
             <input name="event_location" required placeholder="Event location" className="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2" />
-            {bookingMessage ? <p className="text-sm text-slate-600 sm:col-span-2">{bookingMessage}</p> : null}
+            {bookingMessage ? <p className="text-sm text-slate-200 sm:col-span-2">{bookingMessage}</p> : null}
             <button disabled={bookingSaving} className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 sm:col-span-2">{bookingSaving ? 'Sending...' : 'Send booking request'}</button>
           </form>
         </div>
       </section>
 
+      <section id="contact" className="bg-slate-950 px-6 py-20 text-slate-100 lg:px-12">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10">
+            <p className="text-sm uppercase tracking-[0.35em] text-slate-400">Contact Us</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight">Reach out on socials, phone, or email</h2>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-sm">
+              <div className="flex items-center gap-4 text-slate-200">
+                <Phone className="h-6 w-6 text-[#d3b16e]" />
+                <div>
+                  <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Phone</p>
+                  {settings?.phone ? (
+                    <a href={`tel:${escapePhone(settings.phone)}`} className="mt-1 block text-lg font-semibold text-white hover:text-[#d3b16e]">{settings.phone}</a>
+                  ) : (
+                    <p className="mt-1 text-lg font-semibold text-white">Available after setup</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-8 flex items-center gap-4 text-slate-200">
+                <MessageCircle className="h-6 w-6 text-[#d3b16e]" />
+                <div>
+                  <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Email</p>
+                  {settings?.email ? (
+                    <a href={`mailto:${settings.email}`} className="mt-1 block text-lg font-semibold text-white hover:text-[#d3b16e]">{settings.email}</a>
+                  ) : (
+                    <p className="mt-1 text-lg font-semibold text-white">Available after setup</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-sm">
+              <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Socials</p>
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                {settings?.facebook_link ? (
+                  <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950 p-3 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                    <FacebookIcon className="h-5 w-5" />
+                    <span className="sr-only">Facebook</span>
+                  </a>
+                ) : null}
+                {settings?.tiktok_link ? (
+                  <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950 p-3 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                    <TiktokIcon className="h-5 w-5" />
+                    <span className="sr-only">TikTok</span>
+                  </a>
+                ) : null}
+                {settings?.instagram_link ? (
+                  <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950 p-3 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                    <InstagramIcon className="h-5 w-5" />
+                    <span className="sr-only">Instagram</span>
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <footer className="bg-slate-950 px-6 py-10 text-slate-400 lg:px-12">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm">&copy; {new Date().getFullYear()} {brandName}. All rights reserved.</p>
-          <div className="flex gap-4 text-sm font-semibold">
-            {settings?.facebook_link ? <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="hover:text-white">Facebook</a> : null}
-            {settings?.instagram_link ? <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="hover:text-white">Instagram</a> : null}
-            {settings?.tiktok_link ? <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="hover:text-white">TikTok</a> : null}
+        <div className="mx-auto grid max-w-6xl gap-6 text-center text-sm sm:text-base md:grid-cols-[1fr_auto_1fr] md:text-left">
+          <div className="flex flex-col items-center gap-3 md:items-start">
+            <div className="flex items-center justify-center gap-3 md:justify-start">
+              {settings?.facebook_link ? (
+                <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <FacebookIcon className="h-5 w-5" />
+                  <span className="sr-only">Facebook</span>
+                </a>
+              ) : null}
+              {settings?.tiktok_link ? (
+                <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <TiktokIcon className="h-5 w-5" />
+                  <span className="sr-only">TikTok</span>
+                </a>
+              ) : null}
+              {settings?.instagram_link ? (
+                <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <InstagramIcon className="h-5 w-5" />
+                  <span className="sr-only">Instagram</span>
+                </a>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 md:items-center">
+            <p className="text-sm text-slate-400">© 2026 YOLO Photography. All rights reserved.</p>
+            <a href="https://destinecreation.com" target="_blank" rel="noreferrer" className="text-sm font-semibold text-slate-200 transition hover:text-[#d3b16e]">Powered by Destine Creation</a>
+          </div>
+
+          <div className="flex flex-col items-center gap-3 md:items-end">
+            <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Stay connected</p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {settings?.facebook_link ? (
+                <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="text-slate-300 transition hover:text-[#d3b16e]">Facebook</a>
+              ) : null}
+              {settings?.instagram_link ? (
+                <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="text-slate-300 transition hover:text-[#d3b16e]">Instagram</a>
+              ) : null}
+              {settings?.tiktok_link ? (
+                <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="text-slate-300 transition hover:text-[#d3b16e]">TikTok</a>
+              ) : null}
+            </div>
           </div>
         </div>
       </footer>

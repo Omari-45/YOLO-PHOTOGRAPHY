@@ -120,6 +120,10 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function isProtectedSuperAdmin(email: string) {
+  return superAdminEmails.map(normalizeEmail).includes(normalizeEmail(email));
+}
+
 async function getAllowedAdminEmails() {
   const fallback = Array.from(new Set([
     ...superAdminEmails,
@@ -628,8 +632,8 @@ export default function AdminPage() {
   }
 
   async function handleDeleteUser(user: User) {
-    if (normalizeEmail(user.email) === normalizeEmail(adminEmail || '')) {
-      setUserMessage({ type: 'error', text: 'The owner admin cannot be removed here.' });
+    if (isProtectedSuperAdmin(user.email) || normalizeEmail(user.email) === normalizeEmail(adminEmail || '')) {
+      setUserMessage({ type: 'error', text: 'The super admin account cannot be removed here.' });
       return;
     }
 
@@ -1234,20 +1238,26 @@ function UsersSection({
 
       <div className="space-y-4">
         {users.length ? users.map((user) => (
-          <article key={user.email} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={user.email} className={`rounded-2xl border bg-white p-5 shadow-sm ${isProtectedSuperAdmin(user.email) ? 'border-amber-200' : 'border-slate-200'}`}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-950">{user.email}</h3>
-                <p className="text-sm text-slate-500">Allowed admin email</p>
+                <p className="text-sm text-slate-500">{isProtectedSuperAdmin(user.email) ? 'Protected owner account' : 'Allowed admin email'}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => onDelete(user)}
-                disabled={busyUserId === user.email}
-                className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-              >
-                {busyUserId === user.email ? 'Removing...' : 'Remove access'}
-              </button>
+              {isProtectedSuperAdmin(user.email) ? (
+                <span className="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800">
+                  Super Admin
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onDelete(user)}
+                  disabled={busyUserId === user.email}
+                  className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                >
+                  {busyUserId === user.email ? 'Removing...' : 'Remove access'}
+                </button>
+              )}
             </div>
           </article>
         )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No admin emails configured yet.</p>}

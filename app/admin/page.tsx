@@ -17,13 +17,22 @@ const categories = [
   { value: 'Lifestyle', label: 'Lifestyle (Candid shots)' },
 ];
 
-type AdminSection = 'branding' | 'gallery' | 'testimonials' | 'services' | 'bookings' | 'users';
+type AdminSection = 'branding' | 'gallery' | 'testimonials' | 'services' | 'bookings' | 'contact' | 'users';
 
 type SiteSettings = {
   id?: string;
   logo_url?: string | null;
   site_name?: string | null;
   admin_emails?: string[] | null;
+  business_location?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  whatsapp_number?: string | null;
+  facebook_link?: string | null;
+  instagram_link?: string | null;
+  tiktok_link?: string | null;
+  google_maps_link?: string | null;
+  updated_at?: string;
 };
 
 type GalleryItem = {
@@ -78,6 +87,7 @@ const sectionItems: Array<{ id: AdminSection; label: string; description: string
   { id: 'testimonials', label: 'Testimonials', description: 'Draft to live reviews' },
   { id: 'services', label: 'Services', description: 'Photography services offered' },
   { id: 'bookings', label: 'Bookings', description: 'Client inquiries and bookings' },
+  { id: 'contact', label: 'Contact & Socials', description: 'Homepage contact details' },
   { id: 'users', label: 'User Management', description: 'Manage admin access' },
 ];
 
@@ -174,6 +184,17 @@ export default function AdminPage() {
   const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
 
   const [bookings, setBookings] = useState<Booking[]>([]);
+
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactWhatsapp, setContactWhatsapp] = useState('');
+  const [contactLocation, setContactLocation] = useState('');
+  const [contactMapsLink, setContactMapsLink] = useState('');
+  const [contactFacebook, setContactFacebook] = useState('');
+  const [contactInstagram, setContactInstagram] = useState('');
+  const [contactTiktok, setContactTiktok] = useState('');
+  const [contactMessage, setContactMessage] = useState<MessageState>({ type: 'idle', text: '' });
+  const [savingContact, setSavingContact] = useState(false);
 
   const [users, setUsers] = useState<User[]>([]);
   const [userEmail, setUserEmail] = useState('');
@@ -300,8 +321,16 @@ export default function AdminPage() {
   }, [galleryFile]);
 
   async function loadSettings() {
-    const { data } = await fetchSiteSettings('id,logo_url,site_name');
+    const { data } = await fetchSiteSettings('id,logo_url,site_name,phone,email,whatsapp_number,business_location,google_maps_link,facebook_link,instagram_link,tiktok_link');
     if (data?.logo_url) setLogoUrl(data.logo_url);
+    setContactPhone(data?.phone || '');
+    setContactEmail(data?.email || '');
+    setContactWhatsapp(data?.whatsapp_number || '');
+    setContactLocation(data?.business_location || '');
+    setContactMapsLink(data?.google_maps_link || '');
+    setContactFacebook(data?.facebook_link || '');
+    setContactInstagram(data?.instagram_link || '');
+    setContactTiktok(data?.tiktok_link || '');
   }
 
   async function loadGallery() {
@@ -441,6 +470,8 @@ export default function AdminPage() {
   }
 
   async function handleDeleteGallery(item: GalleryItem) {
+    if (!confirm(`Delete this ${item.category} gallery image? This removes it from the homepage too.`)) return;
+
     setDeletingGalleryId(item.id);
     setGalleryMessage({ type: 'idle', text: '' });
 
@@ -460,6 +491,32 @@ export default function AdminPage() {
     }
 
     setDeletingGalleryId(null);
+  }
+
+  async function handleSaveContactDetails() {
+    setSavingContact(true);
+    setContactMessage({ type: 'idle', text: '' });
+
+    const { error } = await saveSiteSettings({
+      phone: contactPhone.trim() || null,
+      email: contactEmail.trim() || null,
+      whatsapp_number: contactWhatsapp.trim() || null,
+      business_location: contactLocation.trim() || null,
+      google_maps_link: contactMapsLink.trim() || null,
+      facebook_link: contactFacebook.trim() || null,
+      instagram_link: contactInstagram.trim() || null,
+      tiktok_link: contactTiktok.trim() || null,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      setContactMessage({ type: 'error', text: error.message });
+    } else {
+      setContactMessage({ type: 'success', text: 'Contact and social links saved to the homepage.' });
+      await loadSettings();
+    }
+
+    setSavingContact(false);
   }
 
   async function handleCreateTestimonial() {
@@ -784,6 +841,30 @@ export default function AdminPage() {
               <BookingsSection bookings={bookings} />
             ) : null}
 
+            {activeSection === 'contact' ? (
+              <ContactSection
+                phone={contactPhone}
+                email={contactEmail}
+                whatsapp={contactWhatsapp}
+                location={contactLocation}
+                mapsLink={contactMapsLink}
+                facebook={contactFacebook}
+                instagram={contactInstagram}
+                tiktok={contactTiktok}
+                message={contactMessage}
+                saving={savingContact}
+                onPhoneChange={setContactPhone}
+                onEmailChange={setContactEmail}
+                onWhatsappChange={setContactWhatsapp}
+                onLocationChange={setContactLocation}
+                onMapsLinkChange={setContactMapsLink}
+                onFacebookChange={setContactFacebook}
+                onInstagramChange={setContactInstagram}
+                onTiktokChange={setContactTiktok}
+                onSave={handleSaveContactDetails}
+              />
+            ) : null}
+
             {activeSection === 'users' ? (
               <UsersSection
                 users={users}
@@ -970,7 +1051,7 @@ function GallerySection({
                 disabled={deletingId === item.id}
                 className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
               >
-                {deletingId === item.id ? 'Deleting...' : 'Delete'}
+                {deletingId === item.id ? 'Deleting...' : 'Delete image'}
               </button>
             </div>
           </article>
@@ -1189,6 +1270,112 @@ function BookingsSection({ bookings }: { bookings: Booking[] }) {
           </div>
         </article>
       )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No bookings yet. Client inquiries will appear here.</p>}
+    </div>
+  );
+}
+
+function ContactSection({
+  phone,
+  email,
+  whatsapp,
+  location,
+  mapsLink,
+  facebook,
+  instagram,
+  tiktok,
+  message,
+  saving,
+  onPhoneChange,
+  onEmailChange,
+  onWhatsappChange,
+  onLocationChange,
+  onMapsLinkChange,
+  onFacebookChange,
+  onInstagramChange,
+  onTiktokChange,
+  onSave,
+}: {
+  phone: string;
+  email: string;
+  whatsapp: string;
+  location: string;
+  mapsLink: string;
+  facebook: string;
+  instagram: string;
+  tiktok: string;
+  message: MessageState;
+  saving: boolean;
+  onPhoneChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
+  onWhatsappChange: (value: string) => void;
+  onLocationChange: (value: string) => void;
+  onMapsLinkChange: (value: string) => void;
+  onFacebookChange: (value: string) => void;
+  onInstagramChange: (value: string) => void;
+  onTiktokChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">Contact Us details</p>
+          <div className="mt-5 grid gap-4">
+            <label className="block text-sm font-semibold text-slate-700">
+              Phone
+              <input type="tel" value={phone} onChange={(event) => onPhoneChange(event.target.value)} placeholder="+254 700 000 000" className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Email
+              <input type="email" value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="hello@yolophotography.com" className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              WhatsApp number
+              <input type="tel" value={whatsapp} onChange={(event) => onWhatsappChange(event.target.value)} placeholder="+254 700 000 000" className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Location
+              <input type="text" value={location} onChange={(event) => onLocationChange(event.target.value)} placeholder="Voi, Kenya" className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Google Maps link
+              <input type="url" value={mapsLink} onChange={(event) => onMapsLinkChange(event.target.value)} placeholder="https://maps.google.com/..." className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </label>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">Social links</p>
+          <div className="mt-5 grid gap-4">
+            <label className="block text-sm font-semibold text-slate-700">
+              Facebook
+              <input type="url" value={facebook} onChange={(event) => onFacebookChange(event.target.value)} placeholder="https://facebook.com/..." className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Instagram
+              <input type="url" value={instagram} onChange={(event) => onInstagramChange(event.target.value)} placeholder="https://instagram.com/..." className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              TikTok
+              <input type="url" value={tiktok} onChange={(event) => onTiktokChange(event.target.value)} placeholder="https://tiktok.com/@..." className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Message message={message} />
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="inline-flex w-full justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {saving ? 'Saving details...' : 'Save contact details'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

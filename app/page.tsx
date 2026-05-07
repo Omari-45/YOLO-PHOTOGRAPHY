@@ -15,6 +15,7 @@ type SiteSettings = {
   facebook_link?: string | null;
   instagram_link?: string | null;
   tiktok_link?: string | null;
+  google_maps_link?: string | null;
 };
 
 type GalleryItem = {
@@ -98,7 +99,7 @@ export default function HomePage() {
       const [settingsResult, galleryResult, servicesResult, testimonialsResult] = await Promise.all([
         supabase
           .from('site_settings')
-          .select('site_name,logo_url,primary_color,whatsapp_number,business_location,email,phone,facebook_link,instagram_link,tiktok_link')
+          .select('site_name,logo_url,primary_color,whatsapp_number,business_location,email,phone,facebook_link,instagram_link,tiktok_link,google_maps_link')
           .limit(1)
           .maybeSingle(),
         supabase.from('galleries').select('id,image_url,category').order('created_at', { ascending: false }).limit(18),
@@ -348,36 +349,62 @@ export default function HomePage() {
             <h2 className="mt-3 text-3xl font-semibold tracking-tight">Reach out on socials, phone, or email</h2>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-            <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
-              <div className="flex items-center gap-4 text-slate-200">
-                <Phone className="h-6 w-6 text-[#d3b16e]" />
-                <div>
-                  <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Phone</p>
-                  {settings?.phone ? (
-                    <a href={`tel:${escapePhone(settings.phone)}`} className="mt-1 block text-lg font-semibold text-white hover:text-[#d3b16e]">{settings.phone}</a>
-                  ) : (
-                    <p className="mt-1 text-lg font-semibold text-white">Available after setup</p>
-                  )}
+          <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
+                <div className="flex items-center gap-4 text-slate-200">
+                  <Phone className="h-6 w-6 text-[#d3b16e]" />
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Phone</p>
+                    {settings?.phone ? (
+                      <a href={`tel:${escapePhone(settings.phone)}`} className="mt-1 block text-lg font-semibold text-white hover:text-[#d3b16e]">{settings.phone}</a>
+                    ) : (
+                      <p className="mt-1 text-lg font-semibold text-white">Available after setup</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center gap-4 text-slate-200">
-                <MessageCircle className="h-6 w-6 text-[#d3b16e]" />
-                <div>
-                  <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Email</p>
-                  {settings?.email ? (
-                    <a href={`mailto:${settings.email}`} className="mt-1 block text-lg font-semibold text-white hover:text-[#d3b16e]">{settings.email}</a>
-                  ) : (
-                    <p className="mt-1 text-lg font-semibold text-white">Available after setup</p>
-                  )}
+              <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
+                <div className="flex items-center gap-4 text-slate-200">
+                  <MessageCircle className="h-6 w-6 text-[#d3b16e]" />
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Email</p>
+                    {settings?.email ? (
+                      <a href={`mailto:${settings.email}`} className="mt-1 block text-lg font-semibold text-white hover:text-[#d3b16e]">{settings.email}</a>
+                    ) : (
+                      <p className="mt-1 text-lg font-semibold text-white">Available after setup</p>
+                    )}
+                  </div>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
+                <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Location</p>
+                {settings?.business_location ? (
+                  settings.google_maps_link ? (
+                    <a href={settings.google_maps_link} target="_blank" rel="noreferrer" className="mt-1 block text-lg font-semibold text-white hover:text-[#d3b16e]">{settings.business_location}</a>
+                  ) : (
+                    <p className="mt-1 text-lg font-semibold text-white">{settings.business_location}</p>
+                  )
+                ) : (
+                  <p className="mt-1 text-lg font-semibold text-white">Available after setup</p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
+                <p className="text-sm uppercase tracking-[0.35em] text-slate-500">WhatsApp</p>
+                {settings?.whatsapp_number ? (
+                  <a href={whatsappHref} target="_blank" rel="noreferrer" className="mt-1 block text-lg font-semibold text-white hover:text-[#d3b16e]">{settings.whatsapp_number}</a>
+                ) : (
+                  <p className="mt-1 text-lg font-semibold text-white">Available after setup</p>
+                )}
               </div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
               <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Socials</p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                 {settings?.facebook_link ? (
                   <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950 p-3 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
                     <FacebookIcon className="h-5 w-5" />

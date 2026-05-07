@@ -152,7 +152,7 @@ async function loadAdminPage() {
       message.textContent = 'Sending password reset email...';
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/admin.html'
+        redirectTo: 'https://yolo-photography.vercel.app/admin/update-password'
       });
 
       if (error) {

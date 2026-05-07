@@ -341,15 +341,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="contact" className="bg-slate-950 px-6 py-20 text-slate-100 lg:px-12">
+      <section id="contact" className="bg-slate-950 px-6 py-16 text-slate-100 lg:px-12">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-10">
+          <div className="mb-8 max-w-3xl">
             <p className="text-sm uppercase tracking-[0.35em] text-slate-400">Contact Us</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight">Reach out on socials, phone, or email</h2>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-            <div className="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-sm">
+          <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
               <div className="flex items-center gap-4 text-slate-200">
                 <Phone className="h-6 w-6 text-[#d3b16e]" />
                 <div>
@@ -362,7 +362,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="mt-8 flex items-center gap-4 text-slate-200">
+              <div className="mt-6 flex items-center gap-4 text-slate-200">
                 <MessageCircle className="h-6 w-6 text-[#d3b16e]" />
                 <div>
                   <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Email</p>
@@ -375,9 +375,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-sm">
+            <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
               <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Socials</p>
-              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 {settings?.facebook_link ? (
                   <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950 p-3 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
                     <FacebookIcon className="h-5 w-5" />
@@ -403,7 +403,7 @@ export default function HomePage() {
       </section>
 
       <footer className="bg-slate-950 px-6 py-10 text-slate-400 lg:px-12">
-        <div className="mx-auto grid max-w-6xl gap-6 text-center text-sm sm:text-base md:grid-cols-[1fr_auto_1fr] md:text-left">
+        <div className="mx-auto grid max-w-6xl gap-6 text-center text-sm sm:text-base md:grid-cols-[1fr_auto_1fr] md:items-center md:text-left">
           <div className="flex flex-col items-center gap-3 md:items-start">
             <div className="flex items-center justify-center gap-3 md:justify-start">
               {settings?.facebook_link ? (
@@ -433,6 +433,9 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col items-center gap-3 md:items-end">
+            <a href="#booking" className="inline-flex justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[#d3b16e]">
+              Book a Session
+            </a>
             <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Stay connected</p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               {settings?.facebook_link ? (

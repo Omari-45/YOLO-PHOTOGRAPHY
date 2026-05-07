@@ -90,7 +90,7 @@ export default function AdminLoginPage() {
     setMessage('');
 
     const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/admin/login` : undefined,
+      redirectTo: 'https://yolo-photography.vercel.app/admin/update-password',
     });
 
     setResetLoading(false);

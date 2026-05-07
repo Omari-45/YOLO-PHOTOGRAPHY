@@ -46,7 +46,6 @@ type GalleryItem = {
 type Testimonial = {
   id: string;
   client_name: string;
-  client_role: string | null;
   quote: string;
   is_published: boolean;
   created_at: string;
@@ -167,7 +166,6 @@ export default function AdminPage() {
 
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [testimonialName, setTestimonialName] = useState('');
-  const [testimonialRole, setTestimonialRole] = useState('');
   const [testimonialQuote, setTestimonialQuote] = useState('');
   const [testimonialMessage, setTestimonialMessage] = useState<MessageState>({ type: 'idle', text: '' });
   const [savingTestimonial, setSavingTestimonial] = useState(false);
@@ -345,7 +343,7 @@ export default function AdminPage() {
   async function loadTestimonials() {
     const { data, error } = await supabase
       .from('testimonials')
-      .select('id,client_name,client_role,quote,is_published,created_at')
+      .select('id,client_name,quote,is_published,created_at')
       .order('created_at', { ascending: false });
 
     if (!error) setTestimonials((data as Testimonial[]) || []);
@@ -531,7 +529,6 @@ export default function AdminPage() {
     const { error } = await supabase.from('testimonials').insert([
       {
         client_name: testimonialName.trim(),
-        client_role: testimonialRole.trim() || null,
         quote: testimonialQuote.trim(),
         is_published: false,
       },
@@ -541,7 +538,6 @@ export default function AdminPage() {
       setTestimonialMessage({ type: 'error', text: error.message });
     } else {
       setTestimonialName('');
-      setTestimonialRole('');
       setTestimonialQuote('');
       setTestimonialMessage({ type: 'success', text: 'Testimonial saved as draft.' });
       await loadTestimonials();
@@ -554,7 +550,7 @@ export default function AdminPage() {
     setBusyTestimonialId(item.id);
     const { error } = await supabase
       .from('testimonials')
-      .update({ is_published: !item.is_published, updated_at: new Date().toISOString() })
+      .update({ is_published: !item.is_published })
       .eq('id', item.id);
 
     if (error) {
@@ -802,13 +798,11 @@ export default function AdminPage() {
               <TestimonialsSection
                 testimonials={testimonials}
                 name={testimonialName}
-                role={testimonialRole}
                 quote={testimonialQuote}
                 message={testimonialMessage}
                 saving={savingTestimonial}
                 busyId={busyTestimonialId}
                 onNameChange={setTestimonialName}
-                onRoleChange={setTestimonialRole}
                 onQuoteChange={setTestimonialQuote}
                 onCreate={handleCreateTestimonial}
                 onToggle={handleToggleTestimonial}
@@ -1077,13 +1071,11 @@ function WatermarkedImage({ imageUrl, logoUrl, alt, className = '' }: { imageUrl
 function TestimonialsSection({
   testimonials,
   name,
-  role,
   quote,
   message,
   saving,
   busyId,
   onNameChange,
-  onRoleChange,
   onQuoteChange,
   onCreate,
   onToggle,
@@ -1091,13 +1083,11 @@ function TestimonialsSection({
 }: {
   testimonials: Testimonial[];
   name: string;
-  role: string;
   quote: string;
   message: MessageState;
   saving: boolean;
   busyId: string | null;
   onNameChange: (value: string) => void;
-  onRoleChange: (value: string) => void;
   onQuoteChange: (value: string) => void;
   onCreate: () => void;
   onToggle: (item: Testimonial) => void;
@@ -1109,7 +1099,6 @@ function TestimonialsSection({
         <p className="text-sm font-semibold text-slate-500">New testimonial</p>
         <div className="mt-5 space-y-4">
           <input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Client name" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-          <input value={role} onChange={(event) => onRoleChange(event.target.value)} placeholder="Role or session type" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
           <textarea value={quote} onChange={(event) => onQuoteChange(event.target.value)} placeholder="Client quote" rows={5} className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
           <Message message={message} />
           <button
@@ -1132,9 +1121,9 @@ function TestimonialsSection({
                   {item.is_published ? 'Live' : 'Draft'}
                 </span>
                 <h3 className="mt-3 text-lg font-semibold text-slate-950">{item.client_name}</h3>
-                <p className="text-sm text-slate-500">{item.client_role || 'Client'}</p>
+                <p className="text-sm text-slate-500">{item.is_published ? 'Published review on homepage' : 'Draft review, not visible yet'}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => onToggle(item)}
@@ -1149,7 +1138,7 @@ function TestimonialsSection({
                   disabled={busyId === item.id}
                   className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
                 >
-                  Delete
+                  Delete review
                 </button>
               </div>
             </div>

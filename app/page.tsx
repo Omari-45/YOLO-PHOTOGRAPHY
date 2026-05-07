@@ -35,7 +35,6 @@ type Service = {
 type Testimonial = {
   id: string;
   client_name: string;
-  client_role: string | null;
   quote: string;
 };
 
@@ -104,7 +103,7 @@ export default function HomePage() {
           .maybeSingle(),
         supabase.from('galleries').select('id,image_url,category').order('created_at', { ascending: false }).limit(18),
         supabase.from('services').select('id,service_name,description,price,icon').order('created_at', { ascending: false }),
-        supabase.from('testimonials').select('id,client_name,client_role,quote').eq('is_published', true).order('created_at', { ascending: false }).limit(6),
+        supabase.from('testimonials').select('id,client_name,quote').eq('is_published', true).order('created_at', { ascending: false }).limit(6),
       ]);
 
       if (!settingsResult.error) setSettings(settingsResult.data || null);
@@ -183,7 +182,6 @@ export default function HomePage() {
     const form = new FormData(event.currentTarget);
     const { error } = await supabase.from('testimonials').insert([{
       client_name: String(form.get('client_name') || '').trim(),
-      client_role: String(form.get('client_role') || '').trim() || null,
       quote: String(form.get('quote') || '').trim(),
       is_published: false,
     }]);
@@ -302,7 +300,7 @@ export default function HomePage() {
                 <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                   <p className="text-sm leading-7 text-slate-700">&ldquo;{item.quote}&rdquo;</p>
                   <p className="mt-4 font-semibold text-slate-950">{item.client_name}</p>
-                  <p className="text-sm text-slate-500">{item.client_role || 'Client'}</p>
+                  <p className="text-sm text-slate-500">Client</p>
                 </article>
               )) : <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-600">No published reviews yet.</p>}
             </div>
@@ -311,7 +309,6 @@ export default function HomePage() {
           <form onSubmit={handleReview} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="text-xl font-semibold text-slate-950">Add a review</h3>
             <input name="client_name" required placeholder="Full name" className="mt-5 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" />
-            <input name="client_role" placeholder="Session type, optional" className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" />
             <textarea name="quote" required rows={5} placeholder="Your testimonial" className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" />
             {reviewMessage ? <p className="mt-3 text-sm text-slate-600">{reviewMessage}</p> : null}
             <button disabled={reviewSaving} className="mt-5 w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{reviewSaving ? 'Sending...' : 'Submit review'}</button>

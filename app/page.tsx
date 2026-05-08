@@ -1,7 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState, type ComponentProps, type CSSProperties } from 'react';
-import { Mail, MessageCircle, Music2, Phone } from 'lucide-react';
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties, type ReactNode, type SVGProps } from 'react';
+import { Mail, MessageCircle, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 type SiteSettings = {
@@ -150,8 +150,48 @@ async function insertBooking(payload: BookingPayload) {
   return supabase.from('bookings').insert([exactPayload]);
 }
 
-function Instagram(props: ComponentProps<typeof Music2>) {
-  return <Music2 {...props} />;
+function InstagramIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+      <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function TikTokIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M16.6 5.82a6.06 6.06 0 0 0 3.53 1.13v3.18a9.25 9.25 0 0 1-3.51-.72v5.86a5.7 5.7 0 1 1-5.7-5.7c.34 0 .68.03 1 .09v3.28a2.48 2.48 0 1 0 1.53 2.29V2.5h3.08c.1 1.25.84 2.53 2.07 3.32Z" />
+    </svg>
+  );
+}
+
+function SocialIconButton({
+  href,
+  label,
+  color,
+  children,
+}: {
+  href: string;
+  label: string;
+  color: string;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      target={href.startsWith('mailto:') ? undefined : '_blank'}
+      rel={href.startsWith('mailto:') ? undefined : 'noreferrer'}
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full text-white shadow-sm transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-white/20"
+      style={{ backgroundColor: color }}
+      aria-label={label}
+    >
+      {children}
+      <span className="sr-only">{label}</span>
+    </a>
+  );
 }
 
 function Toasts({ toasts }: { toasts: ToastState[] }) {
@@ -516,30 +556,26 @@ export default function HomePage() {
 
             <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
               <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Socials</p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="mt-5 flex flex-wrap gap-3">
                 {settings?.tiktok_link ? (
-                  <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                    <Music2 className="h-5 w-5" />
-                    <span className="sr-only">TikTok</span>
-                  </a>
+                  <SocialIconButton href={settings.tiktok_link} label="TikTok" color="#000000">
+                    <TikTokIcon className="h-5 w-5" />
+                  </SocialIconButton>
                 ) : null}
                 {settings?.instagram_link ? (
-                  <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                    <Instagram className="h-5 w-5" />
-                    <span className="sr-only">Instagram</span>
-                  </a>
+                  <SocialIconButton href={settings.instagram_link} label="Instagram" color="#E4405F">
+                    <InstagramIcon className="h-5 w-5" />
+                  </SocialIconButton>
                 ) : null}
                 {settings?.whatsapp_number ? (
-                  <a href={whatsappHref} target="_blank" rel="noreferrer" className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <SocialIconButton href={whatsappHref} label="WhatsApp" color="#25D366">
                     <MessageCircle className="h-5 w-5" />
-                    <span className="sr-only">WhatsApp</span>
-                  </a>
+                  </SocialIconButton>
                 ) : null}
                 {settings?.email ? (
-                  <a href={`mailto:${settings.email}`} className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <SocialIconButton href={`mailto:${settings.email}`} label="Email" color="#334155">
                     <Mail className="h-5 w-5" />
-                    <span className="sr-only">Email</span>
-                  </a>
+                  </SocialIconButton>
                 ) : null}
               </div>
             </div>
@@ -548,36 +584,7 @@ export default function HomePage() {
       </section>
 
       <footer className="bg-slate-950 px-6 py-10 text-slate-400 lg:px-12">
-        <div className="mx-auto grid max-w-6xl gap-6 text-center text-sm sm:text-base md:grid-cols-[1fr_auto_1fr] md:items-center md:text-left">
-          <div className="flex flex-col items-center gap-3 md:items-start">
-            <div className="flex items-center justify-center gap-3 md:justify-start">
-              {settings?.tiktok_link ? (
-                <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <Music2 className="h-5 w-5" />
-                  <span className="sr-only">TikTok</span>
-                </a>
-              ) : null}
-              {settings?.instagram_link ? (
-                <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <Instagram className="h-5 w-5" />
-                  <span className="sr-only">Instagram</span>
-                </a>
-              ) : null}
-              {settings?.whatsapp_number ? (
-                <a href={whatsappHref} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <MessageCircle className="h-5 w-5" />
-                  <span className="sr-only">WhatsApp</span>
-                </a>
-              ) : null}
-              {settings?.email ? (
-                <a href={`mailto:${settings.email}`} className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <Mail className="h-5 w-5" />
-                  <span className="sr-only">Email</span>
-                </a>
-              ) : null}
-            </div>
-          </div>
-
+        <div className="mx-auto grid max-w-6xl gap-6 text-center text-sm sm:text-base md:grid-cols-[1fr_auto] md:items-center md:text-left">
           <div className="flex flex-col items-center gap-2 md:items-center">
             <p className="text-sm text-slate-400">&copy; 2026 YOLO Photography. All rights reserved.</p>
             <a href="https://destinecreation.com" target="_blank" rel="noreferrer" className="text-sm font-semibold text-slate-200 transition hover:text-[#d3b16e]">Powered by Destine Creation</a>
@@ -590,28 +597,24 @@ export default function HomePage() {
             <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Stay connected</p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               {settings?.tiktok_link ? (
-                <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <Music2 className="h-5 w-5" />
-                  <span className="sr-only">TikTok</span>
-                </a>
+                <SocialIconButton href={settings.tiktok_link} label="TikTok" color="#000000">
+                  <TikTokIcon className="h-5 w-5" />
+                </SocialIconButton>
               ) : null}
               {settings?.instagram_link ? (
-                <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <Instagram className="h-5 w-5" />
-                  <span className="sr-only">Instagram</span>
-                </a>
+                <SocialIconButton href={settings.instagram_link} label="Instagram" color="#E4405F">
+                  <InstagramIcon className="h-5 w-5" />
+                </SocialIconButton>
               ) : null}
               {settings?.whatsapp_number ? (
-                <a href={whatsappHref} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                <SocialIconButton href={whatsappHref} label="WhatsApp" color="#25D366">
                   <MessageCircle className="h-5 w-5" />
-                  <span className="sr-only">WhatsApp</span>
-                </a>
+                </SocialIconButton>
               ) : null}
               {settings?.email ? (
-                <a href={`mailto:${settings.email}`} className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                <SocialIconButton href={`mailto:${settings.email}`} label="Email" color="#334155">
                   <Mail className="h-5 w-5" />
-                  <span className="sr-only">Email</span>
-                </a>
+                </SocialIconButton>
               ) : null}
             </div>
           </div>

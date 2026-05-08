@@ -457,6 +457,25 @@ h3 {
   font-weight: 700;
 }
 
+.admin-delete-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.22);
+}
+
+.admin-delete-button:hover {
+  background: #b91c1c;
+}
+
 @media (max-width: 900px) {
   .panel-grid,
   .dashboard-top,

@@ -12,6 +12,7 @@ const LOGO_BUCKET = 'site-assets';
 const GALLERY_BUCKET = 'portfolios';
 const CATEGORIES = ['Studio', 'Wedding', 'Ruracio', 'Editorial', 'Lifestyle'];
 const BRAND_ACCENT_COLOR = '#334155';
+const REVIEW_TABLES = ['reviews', 'testimonials'];
 
 const supabase = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
 
@@ -54,6 +55,49 @@ async function saveSiteSettings(updates) {
   return supabase
     .from('site_settings')
     .insert([updates]);
+}
+
+function isMissingTableError(error) {
+  return error?.code === '42P01' || /relation .* does not exist/i.test(error?.message || '');
+}
+
+async function selectReviews({ publishedOnly = false } = {}) {
+  for (const table of REVIEW_TABLES) {
+    let query = supabase.from(table).select('*').order('created_at', { ascending: false });
+    if (publishedOnly) query = query.eq('is_published', true);
+    const result = await query;
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { data: [], error: null };
+}
+
+async function insertReviewDraft({ client_name, quote }) {
+  const payload = { client_name, quote, is_published: false };
+  for (const table of REVIEW_TABLES) {
+    const result = await supabase.from(table).insert([payload]);
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { error: new Error('Reviews table was not found.') };
+}
+
+async function updateReviewPublish(id, is_published) {
+  for (const table of REVIEW_TABLES) {
+    const result = await supabase.from(table).update({ is_published }).eq('id', id);
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { error: new Error('Reviews table was not found.') };
+}
+
+async function deleteReview(id) {
+  for (const table of REVIEW_TABLES) {
+    const result = await supabase.from(table).delete().eq('id', id);
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { error: new Error('Reviews table was not found.') };
 }
 
 // Helper functions for role checking
@@ -366,7 +410,7 @@ async function loadDashboardPage() {
   }
 
   async function fetchTestimonials() {
-    const { data, error } = await supabase.from('testimonials').select('*').order('created_at', { ascending: false });
+    const { data, error } = await selectReviews();
     if (error) {
       testimonialsList.innerHTML = '<p class="text-sm text-red-500">Unable to load testimonials.</p>';
       return;
@@ -386,8 +430,11 @@ async function loadDashboardPage() {
             <p class="text-sm text-slate-700">${escapeHtml(item.quote)}</p>
           </div>
           <div class="text-right">
-            <button type="button" onclick="toggleTestimonialPublish(${item.id}, ${!item.is_published})" class="button button-secondary mb-2">${item.is_published ? 'Unpublish' : 'Publish'}</button>
-            <button type="button" onclick="deleteTestimonial(${item.id})" class="button button-secondary">Delete</button>
+            <button type="button" onclick="toggleTestimonialPublish(${JSON.stringify(item.id)}, ${!item.is_published})" class="button button-secondary mb-2">${item.is_published ? 'Unpublish' : 'Publish'}</button>
+            <button type="button" onclick="deleteTestimonial(${JSON.stringify(item.id)})" class="admin-delete-button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 4 1 10h8l1-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Delete
+            </button>
           </div>
         </div>
         <p class="text-xs ${item.is_published ? 'text-emerald-600' : 'text-slate-500'} mt-3">${item.is_published ? 'Published' : 'Draft'}</p>
@@ -398,15 +445,14 @@ async function loadDashboardPage() {
   async function saveTestimonial() {
     testimonialMessage.textContent = '';
     const name = testimonialNameInput.value.trim();
-    const role = testimonialRoleInput.value.trim();
     const quote = testimonialQuoteInput.value.trim();
 
-    if (!name || !role || !quote) {
-      testimonialMessage.textContent = 'All fields are required to save a testimonial.';
+    if (!name || !quote) {
+      testimonialMessage.textContent = 'Client name and quote are required to save a review.';
       return;
     }
 
-    const { error } = await supabase.from('testimonials').insert([{ client_name: name, client_role: role, quote, is_published: false }]);
+    const { error } = await insertReviewDraft({ client_name: name, quote });
     if (error) {
       testimonialMessage.textContent = error.message;
       return;
@@ -420,7 +466,7 @@ async function loadDashboardPage() {
   }
 
   async function toggleTestimonialPublish(id, publish) {
-    const { error } = await supabase.from('testimonials').update({ is_published: publish }).eq('id', id);
+    const { error } = await updateReviewPublish(id, publish);
     if (error) {
       alert('Unable to update testimonial status: ' + error.message);
       return;
@@ -431,7 +477,7 @@ async function loadDashboardPage() {
 
   async function deleteTestimonial(id) {
     if (!confirm('Remove this testimonial?')) return;
-    const { error } = await supabase.from('testimonials').delete().eq('id', id);
+    const { error } = await deleteReview(id);
     if (error) {
       alert('Unable to delete testimonial: ' + error.message);
       return;
@@ -708,7 +754,10 @@ async function loadDashboardPage() {
         <img src="${item.image_url}" alt="${item.category}" />
         <div class="gallery-meta">
           <p class="panel-label">${item.category}</p>
-          <button type="button" class="button button-secondary">Delete</button>
+          <button type="button" class="admin-delete-button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 4 1 10h8l1-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Delete
+          </button>
         </div>
       `;
       const button = card.querySelector('button');

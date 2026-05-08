@@ -1,4 +1,4 @@
-# Yolo Photography
+# YOLO Photography
 
 A Next.js photography portfolio and admin dashboard backed by Supabase. The Vercel deployment uses the `app/` routes, with `app/page.tsx` as the public home page and `app/admin` as the protected admin area.
 

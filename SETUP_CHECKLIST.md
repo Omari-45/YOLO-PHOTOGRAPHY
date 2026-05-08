@@ -1,4 +1,4 @@
-🎯 YOLO PHOTOGRAPHY - SETUP CHECKLIST
+🎯 YOLO Photography - SETUP CHECKLIST
 =====================================
 
 Before going live, complete these steps:
@@ -35,7 +35,7 @@ Before going live, complete these steps:
 □ 4. SEED INITIAL DATA (optional)
 
   Add a row to site_settings:
-  - site_name: "Yolo Photography"
+  - site_name: "YOLO Photography"
   - primary_color: "#334155"
   - logo_url: null (upload via dashboard later)
 

@@ -1,6 +1,6 @@
 {
-  "name": "Yolo Photography",
-  "short_name": "Yolo Photo",
+  "name": "YOLO Photography",
+  "short_name": "YOLO Photo",
   "description": "Premium photography portfolio and admin dashboard with Supabase integration.",
   "start_url": "/",
   "display": "standalone",

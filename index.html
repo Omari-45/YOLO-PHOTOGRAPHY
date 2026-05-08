@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title id="pageTitle">Professional Photographer | Yolo Photography</title>
+    <title id="pageTitle">Professional Photographer | YOLO Photography</title>
     <meta id="metaDescription" name="description" content="Professional Photographer for weddings, portraits, events, destination celebrations, and high-end brand photography." />
     <meta name="theme-color" content="#334155" />
     <link rel="manifest" href="/manifest.json" />
@@ -241,11 +241,11 @@
             <img
               id="navLogo"
               src=""
-              alt="Yolo Photography"
+              alt="YOLO Photography"
               class="h-10 object-contain"
               style="display: none;"
             />
-            <span id="navBrand" class="text-xl font-semibold text-gray-900">Yolo Photography</span>
+            <span id="navBrand" class="text-xl font-semibold text-gray-900">YOLO Photography</span>
           </div>
 
           <!-- Desktop Menu -->
@@ -576,7 +576,7 @@
       <div class="max-w-6xl mx-auto px-4">
         <div class="flex flex-col gap-6 md:flex-row justify-between items-center">
           <div class="mb-4 md:mb-0">
-            <p>&copy; 2026 Yolo Photography. All Rights Reserved. | Powered by Destine Creations</p>
+            <p>&copy; 2026 YOLO Photography. All Rights Reserved. | Powered by Destine Creations</p>
           </div>
           <a href="#booking" class="accent-bg hover:opacity-90 text-gray-900 px-6 py-3 rounded-full font-semibold transition">
             Book a Session
@@ -689,6 +689,11 @@
         }[char]));
       }
 
+      function normalizeBrandName(value) {
+        const name = String(value || '').trim();
+        return !name || name.toLowerCase() === 'my photography' ? 'YOLO Photography' : name;
+      }
+
       function updateWhatsAppLink(settings = {}) {
         const whatsappBtn = document.getElementById('whatsappButton');
         if (!whatsappBtn) return;
@@ -696,7 +701,7 @@
         const number = String(settings.whatsapp_number || '').replace(/\D/g, '');
         if (!number) {
           whatsappBtn.href = '#contact';
-          whatsappBtn.setAttribute('aria-label', 'Contact Yolo Photography');
+          whatsappBtn.setAttribute('aria-label', 'Contact YOLO Photography');
           return;
         }
 
@@ -704,7 +709,7 @@
         const fallbackMessage = `Hi! I'm interested in booking a photography session in ${settings.business_location || 'Voi, Kenya'}. Can we discuss details?`;
         const savedMessage = currentHour >= 6 && currentHour < 18 ? settings.day_message : settings.night_message;
         whatsappBtn.href = `https://wa.me/${number}?text=${encodeURIComponent(savedMessage || fallbackMessage)}`;
-        whatsappBtn.setAttribute('aria-label', 'Chat with Yolo Photography on WhatsApp');
+        whatsappBtn.setAttribute('aria-label', 'Chat with YOLO Photography on WhatsApp');
       }
 
       async function fetchSiteSettings(columns = '*') {
@@ -751,9 +756,10 @@
 
           // Apply site name and update meta tags
           if (data.site_name) {
-            document.getElementById('navBrand').textContent = data.site_name;
-            document.title = `${data.site_name} — Professional Photographer`;
-            document.getElementById('pageTitle').textContent = `${data.site_name} — Professional Photographer`;
+            const brandName = normalizeBrandName(data.site_name);
+            document.getElementById('navBrand').textContent = brandName;
+            document.title = `${brandName} - Professional Photographer`;
+            document.getElementById('pageTitle').textContent = `${brandName} - Professional Photographer`;
           }
 
           // Update meta description with location

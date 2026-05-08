@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yolo-photography-cache-v2';
+const CACHE_NAME = 'yolo-photography-cache-v3';
 const CACHE_URLS = [
   '/manifest.json',
   '/icon.svg',
@@ -28,15 +28,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-          return networkResponse;
-        })
-        .catch(() => caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match('/')))
-    );
+    event.respondWith(fetch(event.request));
     return;
   }
 

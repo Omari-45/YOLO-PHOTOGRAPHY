@@ -38,14 +38,25 @@ type Testimonial = {
   quote: string;
 };
 
+type MessageState = {
+  type: 'idle' | 'success' | 'error';
+  text: string;
+};
+
 const CATEGORY_OPTIONS = ['All', 'Wedding', 'Ruracio', 'Studio', 'Editorial', 'Lifestyle'];
 const DEFAULT_ACCENT = '#334155';
+const BRAND_NAME = 'YOLO Photography';
 
 const fallbackServices: Service[] = [
   { id: -1, service_name: 'Wedding Photography', description: 'Full-day ceremony coverage with edited digital delivery.', price: 'From KSh 45,000', icon: 'Wedding' },
   { id: -2, service_name: 'Studio Portraits', description: 'Clean portraits for families, teams, founders, and creatives.', price: 'From KSh 8,000', icon: 'Studio' },
   { id: -3, service_name: 'Ruracio Coverage', description: 'Cultural event storytelling with detail, family, and emotion.', price: 'From KSh 35,000', icon: 'Event' },
 ];
+
+function normalizeBrandName(name?: string | null) {
+  if (!name) return BRAND_NAME;
+  return name.trim().toLowerCase() === 'my photography' ? BRAND_NAME : name;
+}
 
 function escapePhone(phone: string) {
   return phone.replace(/[^\d+]/g, '');
@@ -87,9 +98,9 @@ export default function HomePage() {
   const [isOffline, setIsOffline] = useState(false);
   const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT);
   const [loading, setLoading] = useState(true);
-  const [bookingMessage, setBookingMessage] = useState('');
+  const [bookingMessage, setBookingMessage] = useState<MessageState>({ type: 'idle', text: '' });
   const [bookingSaving, setBookingSaving] = useState(false);
-  const [reviewMessage, setReviewMessage] = useState('');
+  const [reviewMessage, setReviewMessage] = useState<MessageState>({ type: 'idle', text: '' });
   const [reviewSaving, setReviewSaving] = useState(false);
 
   useEffect(() => {
@@ -137,7 +148,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (settings?.site_name) document.title = `${settings.site_name} - Professional Photographer`;
+    document.title = `${normalizeBrandName(settings?.site_name)} - Professional Photographer`;
   }, [settings?.site_name]);
 
   const filteredGallery = useMemo(() => {
@@ -145,7 +156,7 @@ export default function HomePage() {
     return galleryItems.filter((item) => item.category === activeCategory);
   }, [activeCategory, galleryItems]);
 
-  const brandName = settings?.site_name || 'Yolo Photography';
+  const brandName = normalizeBrandName(settings?.site_name);
   const logoUrl = settings?.logo_url;
   const visibleServices = services.length ? services : fallbackServices;
   const whatsappHref = settings?.whatsapp_number
@@ -156,7 +167,7 @@ export default function HomePage() {
   async function handleBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBookingSaving(true);
-    setBookingMessage('');
+    setBookingMessage({ type: 'idle', text: '' });
     const form = new FormData(event.currentTarget);
     const { error } = await supabase.from('bookings').insert([{
       client_name: String(form.get('client_name') || '').trim(),
@@ -168,18 +179,18 @@ export default function HomePage() {
 
     setBookingSaving(false);
     if (error) {
-      setBookingMessage(error.message);
+      setBookingMessage({ type: 'error', text: error.message });
       return;
     }
 
     event.currentTarget.reset();
-    setBookingMessage('Booking request sent. We will contact you shortly.');
+    setBookingMessage({ type: 'success', text: 'Booking request sent. We will contact you shortly.' });
   }
 
   async function handleReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setReviewSaving(true);
-    setReviewMessage('');
+    setReviewMessage({ type: 'idle', text: '' });
     const form = new FormData(event.currentTarget);
     const { error } = await supabase.from('testimonials').insert([{
       client_name: String(form.get('client_name') || '').trim(),
@@ -189,12 +200,12 @@ export default function HomePage() {
 
     setReviewSaving(false);
     if (error) {
-      setReviewMessage(error.message);
+      setReviewMessage({ type: 'error', text: error.message });
       return;
     }
 
     event.currentTarget.reset();
-    setReviewMessage('Thank you. Your review will appear after approval.');
+    setReviewMessage({ type: 'success', text: 'Thank you. Your review will appear after approval.' });
   }
 
   return (
@@ -311,7 +322,7 @@ export default function HomePage() {
             <h3 className="text-xl font-semibold text-slate-950">Add a review</h3>
             <input name="client_name" required placeholder="Full name" className="mt-5 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" />
             <textarea name="quote" required rows={5} placeholder="Your testimonial" className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm" />
-            {reviewMessage ? <p className="mt-3 text-sm text-slate-600">{reviewMessage}</p> : null}
+            {reviewMessage.text ? <p className={`mt-3 text-sm ${reviewMessage.type === 'error' ? 'text-rose-600' : 'text-emerald-700'}`}>{reviewMessage.text}</p> : null}
             <button disabled={reviewSaving} className="mt-5 w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{reviewSaving ? 'Sending...' : 'Submit review'}</button>
           </form>
         </div>
@@ -323,7 +334,10 @@ export default function HomePage() {
             <p className="text-sm uppercase tracking-[0.35em] text-slate-400">Booking</p>
             <h2 className="mt-3 text-4xl font-semibold tracking-tight">Book from the home page</h2>
             <p className="mt-5 text-sm leading-7 text-slate-300">Client requests save to Supabase and appear in the admin Bookings tab.</p>
-            <a href={whatsappHref} className="mt-8 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950">WhatsApp</a>
+            <a href={whatsappHref} className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950">
+              <MessageCircle className="h-4 w-4" />
+              YOLO Photography
+            </a>
           </div>
           <form onSubmit={handleBooking} className="grid gap-4 rounded-2xl border border-white/10 bg-white p-6 text-slate-950 shadow-sm sm:grid-cols-2">
             <input name="client_name" required placeholder="Full name" className="rounded-xl border border-slate-300 px-4 py-3 text-sm" />
@@ -334,7 +348,7 @@ export default function HomePage() {
               {visibleServices.map((service) => <option key={service.id} value={service.service_name}>{service.service_name}</option>)}
             </select>
             <input name="event_location" required placeholder="Event location" className="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2" />
-            {bookingMessage ? <p className="text-sm text-slate-200 sm:col-span-2">{bookingMessage}</p> : null}
+            {bookingMessage.text ? <p className={`text-sm sm:col-span-2 ${bookingMessage.type === 'error' ? 'text-rose-600' : 'text-emerald-700'}`}>{bookingMessage.text}</p> : null}
             <button disabled={bookingSaving} className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 sm:col-span-2">{bookingSaving ? 'Sending...' : 'Send booking request'}</button>
           </form>
         </div>
@@ -483,7 +497,7 @@ export default function HomePage() {
           target="_blank"
           rel="noreferrer"
           className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#25d366] text-white shadow-xl shadow-slate-950/20 transition hover:scale-105 hover:bg-[#1ebe5d] focus:outline-none focus:ring-4 focus:ring-[#25d366]/30"
-          aria-label="Chat with Yolo Photography on WhatsApp"
+          aria-label="Chat with YOLO Photography on WhatsApp"
         >
           <MessageCircle className="h-7 w-7" />
         </a>

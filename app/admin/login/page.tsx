@@ -112,7 +112,7 @@ export default function AdminLoginPage() {
     <main className="min-h-screen bg-slate-950 px-6 py-20 text-white sm:px-10">
       <div className="mx-auto max-w-3xl rounded-[32px] border border-white/10 bg-slate-900/90 p-10 shadow-soft backdrop-blur-xl">
         <div className="mb-10 space-y-3 text-center">
-          <p className="text-sm uppercase tracking-[0.35em] text-slate-400">Yolo Photography Admin</p>
+          <p className="text-sm uppercase tracking-[0.35em] text-slate-400">YOLO Photography Admin</p>
           <h1 className="text-4xl font-semibold tracking-tight text-white">Secure Studio Access</h1>
           <p className="mx-auto max-w-xl text-sm leading-7 text-slate-300">
             Sign in with your Supabase credentials to manage the portfolio and view the owner dashboard.

@@ -80,6 +80,13 @@ type MessageState = {
   text: string;
 };
 
+type ServiceDraft = {
+  service_name: string;
+  description: string;
+  price: string;
+  icon: string;
+};
+
 const sectionItems: Array<{ id: AdminSection; label: string; description: string }> = [
   { id: 'branding', label: 'Branding', description: 'Logo and site identity' },
   { id: 'gallery', label: 'Gallery', description: 'Watermarked portfolio media' },
@@ -180,6 +187,7 @@ export default function AdminPage() {
   const [savingService, setSavingService] = useState(false);
   const [busyServiceId, setBusyServiceId] = useState<number | null>(null);
   const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
+  const [editingServiceDraft, setEditingServiceDraft] = useState<ServiceDraft | null>(null);
 
   const [bookings, setBookings] = useState<Booking[]>([]);
 
@@ -628,24 +636,50 @@ export default function AdminPage() {
     setBusyServiceId(null);
   }
 
-  async function handleUpdateServicePrice(service: Service) {
-    const nextPrice = prompt(`Update price for ${service.service_name}`, service.price || '');
-    if (nextPrice === null) return;
-
+  function handleStartEditService(service: Service) {
     setEditingServiceId(service.id);
+    setEditingServiceDraft({
+      service_name: service.service_name,
+      description: service.description,
+      price: service.price || '',
+      icon: service.icon || 'Camera',
+    });
+    setServiceMessage({ type: 'idle', text: '' });
+  }
+
+  function handleCancelEditService() {
+    setEditingServiceId(null);
+    setEditingServiceDraft(null);
+  }
+
+  async function handleUpdateService(service: Service) {
+    if (!editingServiceDraft?.service_name.trim() || !editingServiceDraft?.description.trim()) {
+      setServiceMessage({ type: 'error', text: 'Service name and description are required.' });
+      return;
+    }
+
+    setBusyServiceId(service.id);
     const { error } = await supabase
       .from('services')
-      .update({ price: nextPrice.trim() || null, updated_at: new Date().toISOString() })
+      .update({
+        service_name: editingServiceDraft.service_name.trim(),
+        description: editingServiceDraft.description.trim(),
+        price: editingServiceDraft.price.trim() || null,
+        icon: editingServiceDraft.icon.trim() || 'Camera',
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', service.id);
 
     if (error) {
       setServiceMessage({ type: 'error', text: error.message });
     } else {
-      setServiceMessage({ type: 'success', text: 'Service price updated.' });
+      setServiceMessage({ type: 'success', text: 'Service updated. Homepage pricing is live.' });
+      setEditingServiceId(null);
+      setEditingServiceDraft(null);
       await loadServices();
     }
 
-    setEditingServiceId(null);
+    setBusyServiceId(null);
   }
 
   async function handleCreateUser() {
@@ -671,12 +705,21 @@ export default function AdminPage() {
       return;
     }
 
-    const { error } = await saveSiteSettings({ admin_emails: [...currentEmails, newEmail] });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const response = await fetch('/api/admin/invite', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionData.session?.access_token || ''}`,
+      },
+      body: JSON.stringify({ email: newEmail }),
+    });
+    const result = await response.json().catch(() => ({}));
 
-    if (error) {
-      setUserMessage({ type: 'error', text: error.message });
+    if (!response.ok) {
+      setUserMessage({ type: 'error', text: result.error || 'Unable to send the admin invite.' });
     } else {
-      setUserMessage({ type: 'success', text: 'Admin user added. They can now log in with their Supabase credentials.' });
+      setUserMessage({ type: 'success', text: 'Admin invite sent. They will receive an email to set their password.' });
       setUserEmail('');
       await loadUsers();
     }
@@ -722,7 +765,7 @@ export default function AdminPage() {
           <div className="flex items-center justify-between gap-4 lg:block">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Secret Admin</p>
-              <h1 className="mt-2 text-2xl font-semibold">Yolo Studio</h1>
+              <h1 className="mt-2 text-2xl font-semibold">YOLO Studio</h1>
             </div>
             <button
               type="button"
@@ -821,12 +864,16 @@ export default function AdminPage() {
                 saving={savingService}
                 busyId={busyServiceId}
                 editingId={editingServiceId}
+                editingDraft={editingServiceDraft}
                 onNameChange={setServiceName}
                 onDescriptionChange={setServiceDescription}
                 onPriceChange={setServicePrice}
                 onIconChange={setServiceIcon}
+                onEditingDraftChange={setEditingServiceDraft}
                 onCreate={handleCreateService}
-                onUpdatePrice={handleUpdateServicePrice}
+                onStartEdit={handleStartEditService}
+                onCancelEdit={handleCancelEditService}
+                onUpdate={handleUpdateService}
                 onDelete={handleDeleteService}
               />
             ) : null}
@@ -1160,12 +1207,16 @@ function ServicesSection({
   saving,
   busyId,
   editingId,
+  editingDraft,
   onNameChange,
   onDescriptionChange,
   onPriceChange,
   onIconChange,
+  onEditingDraftChange,
   onCreate,
-  onUpdatePrice,
+  onStartEdit,
+  onCancelEdit,
+  onUpdate,
   onDelete,
 }: {
   services: Service[];
@@ -1177,12 +1228,16 @@ function ServicesSection({
   saving: boolean;
   busyId: number | null;
   editingId: number | null;
+  editingDraft: ServiceDraft | null;
   onNameChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onPriceChange: (value: string) => void;
   onIconChange: (value: string) => void;
+  onEditingDraftChange: (value: ServiceDraft | null) => void;
   onCreate: () => void;
-  onUpdatePrice: (service: Service) => void;
+  onStartEdit: (service: Service) => void;
+  onCancelEdit: () => void;
+  onUpdate: (service: Service) => void;
   onDelete: (service: Service) => void;
 }) {
   return (
@@ -1209,31 +1264,80 @@ function ServicesSection({
       <div className="space-y-4">
         {services.length ? services.map((service) => (
           <article key={service.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-950">{service.service_name}</h3>
-                <p className="text-sm text-slate-600">{service.description}</p>
-                {service.price && <p className="text-sm font-medium text-slate-950 mt-1">{service.price}</p>}
+            {editingId === service.id && editingDraft ? (
+              <div className="space-y-4">
+                <input
+                  value={editingDraft.service_name}
+                  onChange={(event) => onEditingDraftChange({ ...editingDraft, service_name: event.target.value })}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                />
+                <textarea
+                  value={editingDraft.description}
+                  onChange={(event) => onEditingDraftChange({ ...editingDraft, description: event.target.value })}
+                  rows={3}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={editingDraft.price}
+                    onChange={(event) => onEditingDraftChange({ ...editingDraft, price: event.target.value })}
+                    placeholder="Price"
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                  />
+                  <input
+                    value={editingDraft.icon}
+                    onChange={(event) => onEditingDraftChange({ ...editingDraft, icon: event.target.value })}
+                    placeholder="Icon label"
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => onUpdate(service)}
+                    disabled={busyId === service.id}
+                    className="rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {busyId === service.id ? 'Saving...' : 'Save service'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onCancelEdit}
+                    disabled={busyId === service.id}
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => onUpdatePrice(service)}
-                  disabled={editingId === service.id}
-                  className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                >
-                  {editingId === service.id ? 'Saving...' : 'Edit price'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(service)}
-                  disabled={busyId === service.id}
-                  className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-                >
-                  Delete
-                </button>
+            ) : (
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{service.icon || 'Camera'}</p>
+                  <h3 className="mt-2 text-lg font-semibold text-slate-950">{service.service_name}</h3>
+                  <p className="text-sm text-slate-600">{service.description}</p>
+                  {service.price && <p className="mt-1 text-sm font-medium text-slate-950">{service.price}</p>}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onStartEdit(service)}
+                    disabled={busyId === service.id}
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(service)}
+                    disabled={busyId === service.id}
+                    className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </article>
         )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No services yet. Add your photography services.</p>}
       </div>

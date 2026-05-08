@@ -1,9 +1,9 @@
--- Supabase schema for Yolo Photography admin features
+-- Supabase schema for YOLO Photography admin features
 
 -- Create a table for site-level settings, including logo URL, site name, theme color, and location.
 create table if not exists site_settings (
   id uuid primary key default gen_random_uuid(),
-  site_name text default 'Yolo Photography',
+  site_name text default 'YOLO Photography',
   logo_url text,
   primary_color text default '#334155',
   business_location text default 'Voi, Kenya',
@@ -22,11 +22,11 @@ create table if not exists site_settings (
 );
 
 insert into site_settings (site_name, primary_color, business_location)
-select 'Yolo Photography', '#334155', 'Voi, Kenya'
+select 'YOLO Photography', '#334155', 'Voi, Kenya'
 where not exists (select 1 from site_settings);
 
 alter table site_settings
-  add column if not exists site_name text default 'Yolo Photography',
+  add column if not exists site_name text default 'YOLO Photography',
   add column if not exists logo_url text,
   add column if not exists primary_color text default '#334155',
   add column if not exists business_location text default 'Voi, Kenya',
@@ -46,6 +46,11 @@ alter table site_settings
 update site_settings
 set admin_emails = array['davidomari006@gmail.com']
 where admin_emails is null or array_length(admin_emails, 1) is null;
+
+update site_settings
+set site_name = 'YOLO Photography'
+where site_name is null
+   or lower(trim(site_name)) in ('my photography', 'yolo photography');
 
 -- Create a table for services offered.
 create table if not exists services (
@@ -84,7 +89,7 @@ create table if not exists testimonials (
 );
 
 insert into testimonials (client_name, client_role, quote, is_published)
-select 'Amina Wanjala', 'Wedding Client', 'Yolo Photography captured our Voi wedding with warmth, patience, and beautiful attention to every small detail.', true
+select 'Amina Wanjala', 'Wedding Client', 'YOLO Photography captured our Voi wedding with warmth, patience, and beautiful attention to every small detail.', true
 where not exists (select 1 from testimonials);
 
 insert into testimonials (client_name, client_role, quote, is_published)
@@ -213,3 +218,5 @@ create policy "Authenticated admins can manage site asset files" on storage.obje
 -- 5. Analytics table tracks visits for dashboard metrics.
 -- 6. Bookings table stores client inquiries from the landing page form.
 -- 7. Testimonials default to draft unless explicitly published by an admin.
+-- 8. Keep Public Insert policies active for bookings and testimonial drafts, or the public forms will fail under RLS.
+-- 9. Add SUPABASE_SERVICE_ROLE_KEY to your server environment for admin email invites.

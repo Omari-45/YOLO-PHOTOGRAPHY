@@ -2,7 +2,7 @@
 -- It makes the live database match the admin app expectations and keeps the owner protected.
 
 alter table site_settings
-  add column if not exists site_name text default 'Yolo Photography',
+  add column if not exists site_name text default 'YOLO Photography',
   add column if not exists logo_url text,
   add column if not exists primary_color text default '#334155',
   add column if not exists business_location text default 'Voi, Kenya',
@@ -17,7 +17,7 @@ alter table site_settings
   add column if not exists updated_at timestamp with time zone default now();
 
 insert into site_settings (site_name, primary_color, business_location, admin_emails)
-select 'Yolo Photography', '#334155', 'Voi, Kenya', array['davidomari006@gmail.com']
+select 'YOLO Photography', '#334155', 'Voi, Kenya', array['davidomari006@gmail.com']
 where not exists (select 1 from site_settings);
 
 update site_settings
@@ -26,6 +26,11 @@ set admin_emails = array(
   from unnest(coalesce(admin_emails, array[]::text[]) || array['davidomari006@gmail.com']) as email
 )
 where not ('davidomari006@gmail.com' = any(coalesce(admin_emails, array[]::text[])));
+
+update site_settings
+set site_name = 'YOLO Photography'
+where site_name is null
+   or lower(trim(site_name)) in ('my photography', 'yolo photography');
 
 create table if not exists bookings (
   id bigint generated always as identity primary key,
@@ -54,10 +59,21 @@ create table if not exists galleries (
   created_at timestamp with time zone default now()
 );
 
+create table if not exists services (
+  id bigint generated always as identity primary key,
+  service_name text not null,
+  description text not null,
+  price text,
+  icon text default 'Camera',
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
 alter table site_settings enable row level security;
 alter table bookings enable row level security;
 alter table testimonials enable row level security;
 alter table galleries enable row level security;
+alter table services enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -110,6 +126,15 @@ create policy "Authenticated admins can manage galleries" on galleries
   using (public.is_admin())
   with check (public.is_admin());
 
+drop policy if exists "Public can read services" on services;
+create policy "Public can read services" on services for select using (true);
+
+drop policy if exists "Authenticated admins can manage services" on services;
+create policy "Authenticated admins can manage services" on services
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
 insert into storage.buckets (id, name, public)
 values ('site-assets', 'site-assets', true), ('portfolios', 'portfolios', true)
 on conflict (id) do update set public = excluded.public;
@@ -123,3 +148,7 @@ create policy "Authenticated admins can manage site asset files" on storage.obje
   for all
   using (public.is_admin() and bucket_id in ('site-assets', 'portfolios'))
   with check (public.is_admin() and bucket_id in ('site-assets', 'portfolios'));
+
+-- Important handover reminders:
+-- 1. Keep Public Insert enabled for bookings and testimonial drafts, or the public forms will fail under RLS.
+-- 2. Add SUPABASE_SERVICE_ROLE_KEY to the deployed server environment for inviteUserByEmail().

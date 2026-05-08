@@ -173,7 +173,7 @@ export default function UpdatePasswordPage() {
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-3xl flex-col justify-center">
         <div className="w-full rounded-[28px] border border-white/10 bg-slate-900/90 p-6 shadow-soft backdrop-blur-xl sm:rounded-[32px] sm:p-10">
           <div className="mb-8 space-y-3 text-center sm:mb-10">
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-400 sm:text-sm sm:tracking-[0.35em]">Yolo Photography Admin</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-400 sm:text-sm sm:tracking-[0.35em]">YOLO Photography Admin</p>
             <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Update Password</h1>
             <p className="mx-auto max-w-xl text-sm leading-7 text-slate-300">
               Create a new password for your admin account.

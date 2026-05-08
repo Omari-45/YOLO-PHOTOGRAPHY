@@ -12,7 +12,7 @@ const LOGO_BUCKET = 'site-assets';
 const GALLERY_BUCKET = 'portfolios';
 const CATEGORIES = ['Studio', 'Wedding', 'Ruracio', 'Editorial', 'Lifestyle'];
 const BRAND_ACCENT_COLOR = '#334155';
-const REVIEW_TABLES = ['reviews', 'testimonials'];
+const REVIEW_TABLES = ['reviews'];
 
 const supabase = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
 
@@ -430,7 +430,10 @@ async function loadDashboardPage() {
             <p class="text-sm text-slate-700">${escapeHtml(item.quote)}</p>
           </div>
           <div class="text-right">
-            <button type="button" onclick="toggleTestimonialPublish(${JSON.stringify(item.id)}, ${!item.is_published})" class="button button-secondary mb-2">${item.is_published ? 'Unpublish' : 'Publish'}</button>
+            <label class="publish-toggle">
+              <input type="checkbox" ${item.is_published ? 'checked' : ''} onchange="toggleTestimonialPublish(${JSON.stringify(item.id)}, this.checked)" />
+              <span>${item.is_published ? 'Published' : 'Publish'}</span>
+            </label>
             <button type="button" onclick="deleteTestimonial(${JSON.stringify(item.id)})" class="admin-delete-button">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 4 1 10h8l1-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Delete

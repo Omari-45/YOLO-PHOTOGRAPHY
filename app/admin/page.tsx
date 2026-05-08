@@ -10,7 +10,7 @@ const superAdminEmails = ['davidomari006@gmail.com'];
 const logoBucket = 'site-assets';
 const galleryBucket = 'portfolios';
 const brandAccentColor = '#334155';
-const reviewTables = ['reviews', 'testimonials'];
+const reviewTables = ['reviews'];
 const categories = [
   { value: 'Studio', label: 'Studio (Portraits/Product)' },
   { value: 'Wedding', label: 'Wedding (Ceremonies)' },
@@ -1275,14 +1275,16 @@ function TestimonialsSection({
                 <p className="text-sm text-slate-500">{item.is_published ? 'Published review on homepage' : 'Draft review, not visible yet'}</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={() => onToggle(item)}
-                  disabled={busyId === item.id}
-                  className="rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
-                >
-                  {item.is_published ? 'Unpublish' : 'Publish'}
-                </button>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={item.is_published}
+                    onChange={() => onToggle(item)}
+                    disabled={busyId === item.id}
+                    className="h-4 w-4 accent-emerald-600"
+                  />
+                  {item.is_published ? 'Published' : 'Publish'}
+                </label>
               </div>
             </div>
             <p className="mt-4 text-sm leading-7 text-slate-600">&ldquo;{item.quote}&rdquo;</p>

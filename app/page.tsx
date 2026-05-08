@@ -65,7 +65,7 @@ type BookingPayload = {
 const CATEGORY_OPTIONS = ['All', 'Wedding', 'Ruracio', 'Studio', 'Editorial', 'Lifestyle'];
 const DEFAULT_ACCENT = '#334155';
 const BRAND_NAME = 'YOLO Photography';
-const REVIEW_TABLES = ['reviews', 'testimonials'];
+const REVIEW_TABLES = ['reviews'];
 
 const fallbackServices: Service[] = [
   { id: -1, service_name: 'Wedding Photography', description: 'Full-day ceremony coverage with edited digital delivery.', price: 'From KSh 45,000', icon: 'Wedding' },

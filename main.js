@@ -63,7 +63,10 @@ function isMissingTableError(error) {
 
 async function selectReviews({ publishedOnly = false } = {}) {
   for (const table of REVIEW_TABLES) {
-    let query = supabase.from(table).select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from(table)
+      .select('id,client_name,quote,is_published,created_at')
+      .order('created_at', { ascending: false });
     if (publishedOnly) query = query.eq('is_published', true);
     const result = await query;
     if (!result.error || !isMissingTableError(result.error)) return result;
@@ -426,7 +429,6 @@ async function loadDashboardPage() {
         <div class="flex justify-between items-start gap-3">
           <div>
             <p class="text-sm font-semibold text-slate-900">${escapeHtml(item.client_name)}</p>
-            <p class="text-xs text-slate-600 mb-2">${escapeHtml(item.client_role)}</p>
             <p class="text-sm text-slate-700">${escapeHtml(item.quote)}</p>
           </div>
           <div class="text-right">

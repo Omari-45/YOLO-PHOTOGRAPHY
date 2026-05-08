@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState, type CSSProperties, type ReactNode, type SVGProps } from 'react';
-import { Mail, MessageCircle, Phone } from 'lucide-react';
+import { createLucideIcon, Mail, MessageCircle, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 type SiteSettings = {
@@ -72,6 +72,18 @@ const fallbackServices: Service[] = [
   { id: -2, service_name: 'Studio Portraits', description: 'Clean portraits for families, teams, founders, and creatives.', price: 'From KSh 8,000', icon: 'Studio' },
   { id: -3, service_name: 'Ruracio Coverage', description: 'Cultural event storytelling with detail, family, and emotion.', price: 'From KSh 35,000', icon: 'Event' },
 ];
+
+const Facebook = createLucideIcon('Facebook', [
+  [
+    'path',
+    {
+      d: 'M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3.5l.5-4h-4V7a1 1 0 0 1 1-1h3V2z',
+      fill: 'currentColor',
+      stroke: 'none',
+      key: 'facebook-mark',
+    },
+  ],
+]);
 
 function normalizeBrandName(name?: string | null) {
   if (!name) return BRAND_NAME;
@@ -557,6 +569,11 @@ export default function HomePage() {
             <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
               <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Socials</p>
               <div className="mt-5 flex flex-wrap gap-3">
+                {settings?.facebook_link ? (
+                  <SocialIconButton href={settings.facebook_link} label="Facebook" color="#1877F2">
+                    <Facebook className="h-5 w-5" />
+                  </SocialIconButton>
+                ) : null}
                 {settings?.tiktok_link ? (
                   <SocialIconButton href={settings.tiktok_link} label="TikTok" color="#000000">
                     <TikTokIcon className="h-5 w-5" />
@@ -596,6 +613,11 @@ export default function HomePage() {
             </a>
             <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Stay connected</p>
             <div className="flex flex-wrap items-center justify-center gap-3">
+              {settings?.facebook_link ? (
+                <SocialIconButton href={settings.facebook_link} label="Facebook" color="#1877F2">
+                  <Facebook className="h-5 w-5" />
+                </SocialIconButton>
+              ) : null}
               {settings?.tiktok_link ? (
                 <SocialIconButton href={settings.tiktok_link} label="TikTok" color="#000000">
                   <TikTokIcon className="h-5 w-5" />

@@ -1169,23 +1169,24 @@ function GallerySection({
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {items.length ? items.map((item) => (
-          <article key={item.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <article key={item.id} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <button
+              type="button"
+              onClick={() => onDelete(item)}
+              disabled={deletingId === item.id}
+              className="absolute right-3 top-3 z-20 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-rose-600 px-3 py-2 text-xs font-bold text-white shadow-lg transition hover:bg-rose-700 disabled:opacity-60"
+              aria-label={`Delete ${item.category} gallery image`}
+              title="Delete image"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deletingId === item.id ? 'Deleting' : 'Delete'}
+            </button>
             <WatermarkedImage imageUrl={item.image_url} logoUrl={logoUrl} alt={item.category} className="aspect-[4/3]" />
             <div className="flex items-center justify-between gap-3 p-4">
               <div>
                 <p className="text-sm font-semibold text-slate-950">{item.category}</p>
                 <p className="mt-1 truncate text-xs text-slate-500">{item.storage_path}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => onDelete(item)}
-                disabled={deletingId === item.id}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-rose-200 text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-                aria-label={`Delete ${item.category} gallery image`}
-                title="Delete image"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
             </div>
           </article>
         )) : <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No gallery images yet.</p>}
@@ -1253,7 +1254,18 @@ function TestimonialsSection({
 
       <div className="space-y-4">
         {testimonials.length ? testimonials.map((item) => (
-          <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={item.id} className="relative rounded-2xl border border-slate-200 bg-white p-5 pr-24 shadow-sm">
+            <button
+              type="button"
+              onClick={() => onDelete(item)}
+              disabled={busyId === item.id}
+              className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-rose-600 px-3 py-2 text-xs font-bold text-white shadow-lg transition hover:bg-rose-700 disabled:opacity-60"
+              aria-label={`Delete review from ${item.client_name}`}
+              title="Delete review"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${item.is_published ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
@@ -1270,16 +1282,6 @@ function TestimonialsSection({
                   className="rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
                 >
                   {item.is_published ? 'Unpublish' : 'Publish'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(item)}
-                  disabled={busyId === item.id}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-                  aria-label={`Delete review from ${item.client_name}`}
-                  title="Delete review"
-                >
-                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type ComponentProps, type CSSProperties } from 'react';
 import { Mail, MessageCircle, Music2, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -49,6 +49,19 @@ type ToastState = {
   text: string;
 };
 
+type SupabaseErrorLike = {
+  code?: string;
+  message?: string;
+};
+
+type BookingPayload = {
+  client_name: string;
+  phone: string;
+  event_date: string;
+  service_type: string;
+  event_location: string;
+};
+
 const CATEGORY_OPTIONS = ['All', 'Wedding', 'Ruracio', 'Studio', 'Editorial', 'Lifestyle'];
 const DEFAULT_ACCENT = '#334155';
 const BRAND_NAME = 'YOLO Photography';
@@ -73,6 +86,10 @@ function isMissingTableError(error: { code?: string; message?: string } | null) 
   return error?.code === '42P01' || /relation .* does not exist/i.test(error?.message || '');
 }
 
+function isSchemaCacheError(error: SupabaseErrorLike | null) {
+  return error?.code === 'PGRST204' || /schema cache|column .* not found/i.test(error?.message || '');
+}
+
 async function selectPublishedReviews() {
   for (const table of REVIEW_TABLES) {
     const result = await supabase
@@ -90,11 +107,51 @@ async function selectPublishedReviews() {
 
 async function insertReviewDraft(review: { client_name: string; quote: string; is_published: boolean }) {
   for (const table of REVIEW_TABLES) {
-    const result = await supabase.from(table).insert([review]);
+    const result = await supabase
+      .from(table)
+      .insert([{
+        client_name: review.client_name,
+        quote: review.quote,
+        is_published: false,
+      }]);
+
+    if (result.error && isSchemaCacheError(result.error)) {
+      await new Promise((resolve) => window.setTimeout(resolve, 700));
+      const retryResult = await supabase
+        .from(table)
+        .insert([{
+          client_name: review.client_name,
+          quote: review.quote,
+          is_published: false,
+        }]);
+
+      if (!retryResult.error || !isMissingTableError(retryResult.error)) return retryResult;
+    }
+
     if (!result.error || !isMissingTableError(result.error)) return result;
   }
 
   return { error: new Error('Reviews table was not found in Supabase.') };
+}
+
+async function insertBooking(payload: BookingPayload) {
+  const exactPayload = {
+    client_name: payload.client_name,
+    phone: payload.phone,
+    event_date: payload.event_date,
+    service_type: payload.service_type,
+    event_location: payload.event_location,
+  };
+  const result = await supabase.from('bookings').insert([exactPayload]);
+
+  if (!result.error || !isSchemaCacheError(result.error)) return result;
+
+  await new Promise((resolve) => window.setTimeout(resolve, 700));
+  return supabase.from('bookings').insert([exactPayload]);
+}
+
+function Instagram(props: ComponentProps<typeof Music2>) {
+  return <Music2 {...props} />;
 }
 
 function Toasts({ toasts }: { toasts: ToastState[] }) {
@@ -207,13 +264,13 @@ export default function HomePage() {
     setBookingSaving(true);
     setBookingMessage({ type: 'idle', text: '' });
     const form = new FormData(event.currentTarget);
-    const { error } = await supabase.from('bookings').insert([{
+    const { error } = await insertBooking({
       client_name: String(form.get('client_name') || '').trim(),
       phone: String(form.get('phone') || '').trim(),
       event_date: String(form.get('event_date') || ''),
       service_type: String(form.get('service_type') || '').trim(),
       event_location: String(form.get('event_location') || '').trim(),
-    }]);
+    });
 
     setBookingSaving(false);
     if (error) {
@@ -466,6 +523,12 @@ export default function HomePage() {
                     <span className="sr-only">TikTok</span>
                   </a>
                 ) : null}
+                {settings?.instagram_link ? (
+                  <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                    <Instagram className="h-5 w-5" />
+                    <span className="sr-only">Instagram</span>
+                  </a>
+                ) : null}
                 {settings?.whatsapp_number ? (
                   <a href={whatsappHref} target="_blank" rel="noreferrer" className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
                     <MessageCircle className="h-5 w-5" />
@@ -492,6 +555,12 @@ export default function HomePage() {
                 <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
                   <Music2 className="h-5 w-5" />
                   <span className="sr-only">TikTok</span>
+                </a>
+              ) : null}
+              {settings?.instagram_link ? (
+                <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <Instagram className="h-5 w-5" />
+                  <span className="sr-only">Instagram</span>
                 </a>
               ) : null}
               {settings?.whatsapp_number ? (
@@ -524,6 +593,12 @@ export default function HomePage() {
                 <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
                   <Music2 className="h-5 w-5" />
                   <span className="sr-only">TikTok</span>
+                </a>
+              ) : null}
+              {settings?.instagram_link ? (
+                <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <Instagram className="h-5 w-5" />
+                  <span className="sr-only">Instagram</span>
                 </a>
               ) : null}
               {settings?.whatsapp_number ? (

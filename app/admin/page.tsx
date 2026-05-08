@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
 const adminEmail = process.env.NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL;
@@ -9,6 +10,7 @@ const superAdminEmails = ['davidomari006@gmail.com'];
 const logoBucket = 'site-assets';
 const galleryBucket = 'portfolios';
 const brandAccentColor = '#334155';
+const reviewTables = ['reviews', 'testimonials'];
 const categories = [
   { value: 'Studio', label: 'Studio (Portraits/Product)' },
   { value: 'Wedding', label: 'Wedding (Ceremonies)' },
@@ -80,6 +82,12 @@ type MessageState = {
   text: string;
 };
 
+type ToastState = {
+  id: number;
+  type: 'success' | 'error';
+  text: string;
+};
+
 type ServiceDraft = {
   service_name: string;
   description: string;
@@ -140,6 +148,50 @@ function isProtectedSuperAdmin(email: string) {
   return superAdminEmails.map(normalizeEmail).includes(normalizeEmail(email));
 }
 
+function isMissingTableError(error: { code?: string; message?: string } | null) {
+  return error?.code === '42P01' || /relation .* does not exist/i.test(error?.message || '');
+}
+
+async function selectReviews() {
+  for (const table of reviewTables) {
+    const result = await supabase
+      .from(table)
+      .select('id,client_name,quote,is_published,created_at')
+      .order('created_at', { ascending: false });
+
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { data: [], error: null };
+}
+
+async function insertReviewDraft(review: { client_name: string; quote: string; is_published: boolean }) {
+  for (const table of reviewTables) {
+    const result = await supabase.from(table).insert([review]);
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { error: new Error('Reviews table was not found in Supabase.') };
+}
+
+async function updateReview(item: Testimonial, updates: Partial<Testimonial>) {
+  for (const table of reviewTables) {
+    const result = await supabase.from(table).update(updates).eq('id', item.id);
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { error: new Error('Reviews table was not found in Supabase.') };
+}
+
+async function deleteReview(item: Testimonial) {
+  for (const table of reviewTables) {
+    const result = await supabase.from(table).delete().eq('id', item.id);
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { error: new Error('Reviews table was not found in Supabase.') };
+}
+
 async function getAllowedAdminEmails() {
   const fallback = Array.from(new Set([
     ...superAdminEmails,
@@ -149,6 +201,27 @@ async function getAllowedAdminEmails() {
   if (error) return fallback;
   const emails = data?.admin_emails?.map(normalizeEmail).filter(Boolean);
   return Array.from(new Set([...(emails || []), ...fallback]));
+}
+
+function Toasts({ toasts }: { toasts: ToastState[] }) {
+  if (!toasts.length) return null;
+
+  return (
+    <div className="fixed right-5 top-5 z-[80] grid w-[min(360px,calc(100vw-2.5rem))] gap-3">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className={`rounded-2xl border px-4 py-3 text-sm font-semibold shadow-lg ${
+            toast.type === 'error'
+              ? 'border-rose-200 bg-white text-rose-700'
+              : 'border-emerald-200 bg-white text-emerald-700'
+          }`}
+        >
+          {toast.text}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function AdminPage() {
@@ -207,6 +280,15 @@ export default function AdminPage() {
   const [userMessage, setUserMessage] = useState<MessageState>({ type: 'idle', text: '' });
   const [savingUser, setSavingUser] = useState(false);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastState[]>([]);
+
+  function showToast(type: ToastState['type'], text: string) {
+    const id = Date.now();
+    setToasts((current) => [...current, { id, type, text }]);
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 4200);
+  }
 
   const pageStyle = useMemo(
     () => ({ '--theme-accent': themeAccent } as CSSProperties),
@@ -349,10 +431,7 @@ export default function AdminPage() {
   }
 
   async function loadTestimonials() {
-    const { data, error } = await supabase
-      .from('testimonials')
-      .select('id,client_name,quote,is_published,created_at')
-      .order('created_at', { ascending: false });
+    const { data, error } = await selectReviews();
 
     if (!error) setTestimonials((data as Testimonial[]) || []);
   }
@@ -484,6 +563,7 @@ export default function AdminPage() {
     const { error: removeError } = await supabase.storage.from(galleryBucket).remove([item.storage_path]);
     if (removeError) {
       setGalleryMessage({ type: 'error', text: removeError.message });
+      showToast('error', removeError.message);
       setDeletingGalleryId(null);
       return;
     }
@@ -491,8 +571,10 @@ export default function AdminPage() {
     const { error: deleteError } = await supabase.from('galleries').delete().eq('id', item.id);
     if (deleteError) {
       setGalleryMessage({ type: 'error', text: deleteError.message });
+      showToast('error', deleteError.message);
     } else {
       setGalleryMessage({ type: 'success', text: 'Image removed.' });
+      showToast('success', 'Gallery image deleted successfully.');
       await loadGallery();
     }
 
@@ -534,20 +616,20 @@ export default function AdminPage() {
     setSavingTestimonial(true);
     setTestimonialMessage({ type: 'idle', text: '' });
 
-    const { error } = await supabase.from('testimonials').insert([
-      {
-        client_name: testimonialName.trim(),
-        quote: testimonialQuote.trim(),
-        is_published: false,
-      },
-    ]);
+    const { error } = await insertReviewDraft({
+      client_name: testimonialName.trim(),
+      quote: testimonialQuote.trim(),
+      is_published: false,
+    });
 
     if (error) {
       setTestimonialMessage({ type: 'error', text: error.message });
+      showToast('error', error.message);
     } else {
       setTestimonialName('');
       setTestimonialQuote('');
       setTestimonialMessage({ type: 'success', text: 'Testimonial saved as draft.' });
+      showToast('success', 'Review saved as draft.');
       await loadTestimonials();
     }
 
@@ -556,18 +638,15 @@ export default function AdminPage() {
 
   async function handleToggleTestimonial(item: Testimonial) {
     setBusyTestimonialId(item.id);
-    const { error } = await supabase
-      .from('testimonials')
-      .update({ is_published: !item.is_published })
-      .eq('id', item.id);
+    const { error } = await updateReview(item, { is_published: !item.is_published });
 
     if (error) {
       setTestimonialMessage({ type: 'error', text: error.message });
+      showToast('error', error.message);
     } else {
-      setTestimonialMessage({
-        type: 'success',
-        text: item.is_published ? 'Testimonial unpublished.' : 'Testimonial published live.',
-      });
+      const message = item.is_published ? 'Review unpublished.' : 'Review published live.';
+      setTestimonialMessage({ type: 'success', text: message });
+      showToast('success', message);
       await loadTestimonials();
     }
 
@@ -578,12 +657,14 @@ export default function AdminPage() {
     if (!confirm(`Delete testimonial from ${item.client_name}?`)) return;
 
     setBusyTestimonialId(item.id);
-    const { error } = await supabase.from('testimonials').delete().eq('id', item.id);
+    const { error } = await deleteReview(item);
 
     if (error) {
       setTestimonialMessage({ type: 'error', text: error.message });
+      showToast('error', error.message);
     } else {
-      setTestimonialMessage({ type: 'success', text: 'Testimonial deleted permanently.' });
+      setTestimonialMessage({ type: 'success', text: 'Review deleted permanently.' });
+      showToast('success', 'Review deleted successfully.');
       await loadTestimonials();
     }
 
@@ -608,8 +689,10 @@ export default function AdminPage() {
 
     if (error) {
       setServiceMessage({ type: 'error', text: error.message });
+      showToast('error', error.message);
     } else {
       setServiceMessage({ type: 'success', text: 'Service added successfully.' });
+      showToast('success', 'Service added successfully.');
       setServiceName('');
       setServiceDescription('');
       setServicePrice('');
@@ -628,8 +711,10 @@ export default function AdminPage() {
 
     if (error) {
       setServiceMessage({ type: 'error', text: error.message });
+      showToast('error', error.message);
     } else {
       setServiceMessage({ type: 'success', text: 'Service deleted permanently.' });
+      showToast('success', 'Service deleted successfully.');
       await loadServices();
     }
 
@@ -672,8 +757,10 @@ export default function AdminPage() {
 
     if (error) {
       setServiceMessage({ type: 'error', text: error.message });
+      showToast('error', error.message);
     } else {
       setServiceMessage({ type: 'success', text: 'Service updated. Homepage pricing is live.' });
+      showToast('success', 'Price update saved successfully.');
       setEditingServiceId(null);
       setEditingServiceDraft(null);
       await loadServices();
@@ -718,8 +805,10 @@ export default function AdminPage() {
 
     if (!response.ok) {
       setUserMessage({ type: 'error', text: result.error || 'Unable to send the admin invite.' });
+      showToast('error', result.error || 'Unable to send the admin invite.');
     } else {
       setUserMessage({ type: 'success', text: 'Admin invite sent. They will receive an email to set their password.' });
+      showToast('success', 'Admin invite sent successfully.');
       setUserEmail('');
       await loadUsers();
     }
@@ -760,6 +849,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950" style={pageStyle}>
+      <Toasts toasts={toasts} />
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
         <aside className="border-b border-slate-200 bg-slate-950 px-5 py-6 text-white lg:border-b-0 lg:border-r lg:border-slate-800">
           <div className="flex items-center justify-between gap-4 lg:block">
@@ -1090,9 +1180,11 @@ function GallerySection({
                 type="button"
                 onClick={() => onDelete(item)}
                 disabled={deletingId === item.id}
-                className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-rose-200 text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                aria-label={`Delete ${item.category} gallery image`}
+                title="Delete image"
               >
-                {deletingId === item.id ? 'Deleting...' : 'Delete image'}
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
           </article>
@@ -1183,9 +1275,11 @@ function TestimonialsSection({
                   type="button"
                   onClick={() => onDelete(item)}
                   disabled={busyId === item.id}
-                  className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                  aria-label={`Delete review from ${item.client_name}`}
+                  title="Delete review"
                 >
-                  Delete review
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -1331,9 +1425,11 @@ function ServicesSection({
                     type="button"
                     onClick={() => onDelete(service)}
                     disabled={busyId === service.id}
-                    className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                    aria-label={`Delete ${service.service_name}`}
+                    title="Delete service"
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -1354,7 +1450,7 @@ function BookingsSection({ bookings }: { bookings: Booking[] }) {
             <div>
               <h3 className="text-lg font-semibold text-slate-950">{booking.client_name}</h3>
               <p className="text-sm text-slate-600">{booking.service_type}</p>
-              <p className="text-sm text-slate-500">{booking.event_location} • {new Date(booking.event_date).toLocaleDateString()}</p>
+              <p className="text-sm text-slate-500">{booking.event_location} &middot; {new Date(booking.event_date).toLocaleDateString()}</p>
               <p className="text-sm text-slate-500">{booking.phone}</p>
             </div>
             <div className="text-right">

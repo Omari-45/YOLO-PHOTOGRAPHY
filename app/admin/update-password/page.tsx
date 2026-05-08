@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useState, type ReactNode, type SVGProps } from 'react';
+import { FormEvent, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { Music2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 
 type SocialLinks = {
@@ -9,33 +10,6 @@ type SocialLinks = {
   instagram_link?: string | null;
   tiktok_link?: string | null;
 };
-
-function FacebookIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M18 2h-3a4 4 0 0 0-4 4v3H8v4h3v8h4v-8h3l1-4h-4V6a1 1 0 0 1 1-1h3z" />
-    </svg>
-  );
-}
-
-function InstagramIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 11.37 7 4 4 0 0 1 16 11.37z" />
-      <path d="M17.5 6.5h.01" />
-    </svg>
-  );
-}
-
-function TiktokIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M13 2v8a4 4 0 1 0 4 4V6h3" />
-      <path d="M14 22a4 4 0 1 1 0-8" />
-    </svg>
-  );
-}
 
 function SocialIconLink({
   href,
@@ -245,14 +219,8 @@ export default function UpdatePasswordPage() {
 
         <footer className="mt-8 flex flex-col items-center gap-4 text-center">
           <div className="flex items-center justify-center gap-3">
-            <SocialIconLink href={socialLinks?.facebook_link} label="Facebook">
-              <FacebookIcon className="h-5 w-5" />
-            </SocialIconLink>
             <SocialIconLink href={socialLinks?.tiktok_link} label="TikTok">
-              <TiktokIcon className="h-5 w-5" />
-            </SocialIconLink>
-            <SocialIconLink href={socialLinks?.instagram_link} label="Instagram">
-              <InstagramIcon className="h-5 w-5" />
+              <Music2 className="h-5 w-5" />
             </SocialIconLink>
           </div>
           <a href="https://destinecreation.com" target="_blank" rel="noreferrer" className="text-sm font-semibold text-slate-300 transition hover:text-[#d3b16e]">

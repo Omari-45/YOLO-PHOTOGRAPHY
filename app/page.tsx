@@ -1,7 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState, type CSSProperties, type SVGProps } from 'react';
-import { MessageCircle, Phone } from 'lucide-react';
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Mail, MessageCircle, Music2, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 type SiteSettings = {
@@ -43,9 +43,16 @@ type MessageState = {
   text: string;
 };
 
+type ToastState = {
+  id: number;
+  type: 'success' | 'error';
+  text: string;
+};
+
 const CATEGORY_OPTIONS = ['All', 'Wedding', 'Ruracio', 'Studio', 'Editorial', 'Lifestyle'];
 const DEFAULT_ACCENT = '#334155';
 const BRAND_NAME = 'YOLO Photography';
+const REVIEW_TABLES = ['reviews', 'testimonials'];
 
 const fallbackServices: Service[] = [
   { id: -1, service_name: 'Wedding Photography', description: 'Full-day ceremony coverage with edited digital delivery.', price: 'From KSh 45,000', icon: 'Wedding' },
@@ -62,30 +69,52 @@ function escapePhone(phone: string) {
   return phone.replace(/[^\d+]/g, '');
 }
 
-function FacebookIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M18 2h-3a4 4 0 0 0-4 4v3H8v4h3v8h4v-8h3l1-4h-4V6a1 1 0 0 1 1-1h3z" />
-    </svg>
-  );
+function isMissingTableError(error: { code?: string; message?: string } | null) {
+  return error?.code === '42P01' || /relation .* does not exist/i.test(error?.message || '');
 }
 
-function InstagramIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 11.37 7 4 4 0 0 1 16 11.37z" />
-      <path d="M17.5 6.5h.01" />
-    </svg>
-  );
+async function selectPublishedReviews() {
+  for (const table of REVIEW_TABLES) {
+    const result = await supabase
+      .from(table)
+      .select('id,client_name,quote')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false })
+      .limit(6);
+
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { data: null, error: null };
 }
 
-function TiktokIcon(props: SVGProps<SVGSVGElement>) {
+async function insertReviewDraft(review: { client_name: string; quote: string; is_published: boolean }) {
+  for (const table of REVIEW_TABLES) {
+    const result = await supabase.from(table).insert([review]);
+    if (!result.error || !isMissingTableError(result.error)) return result;
+  }
+
+  return { error: new Error('Reviews table was not found in Supabase.') };
+}
+
+function Toasts({ toasts }: { toasts: ToastState[] }) {
+  if (!toasts.length) return null;
+
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M13 2v8a4 4 0 1 0 4 4V6h3" />
-      <path d="M14 22a4 4 0 1 1 0-8" />
-    </svg>
+    <div className="fixed right-5 top-5 z-[80] grid w-[min(360px,calc(100vw-2.5rem))] gap-3">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className={`rounded-2xl border px-4 py-3 text-sm font-semibold shadow-lg ${
+            toast.type === 'error'
+              ? 'border-rose-200 bg-white text-rose-700'
+              : 'border-emerald-200 bg-white text-emerald-700'
+          }`}
+        >
+          {toast.text}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -102,6 +131,15 @@ export default function HomePage() {
   const [bookingSaving, setBookingSaving] = useState(false);
   const [reviewMessage, setReviewMessage] = useState<MessageState>({ type: 'idle', text: '' });
   const [reviewSaving, setReviewSaving] = useState(false);
+  const [toasts, setToasts] = useState<ToastState[]>([]);
+
+  function showToast(type: ToastState['type'], text: string) {
+    const id = Date.now();
+    setToasts((current) => [...current, { id, type, text }]);
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 4200);
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -114,7 +152,7 @@ export default function HomePage() {
           .maybeSingle(),
         supabase.from('galleries').select('id,image_url,category').order('created_at', { ascending: false }).limit(18),
         supabase.from('services').select('id,service_name,description,price,icon').order('created_at', { ascending: false }),
-        supabase.from('testimonials').select('id,client_name,quote').eq('is_published', true).order('created_at', { ascending: false }).limit(6),
+        selectPublishedReviews(),
       ]);
 
       if (!settingsResult.error) setSettings(settingsResult.data || null);
@@ -180,11 +218,13 @@ export default function HomePage() {
     setBookingSaving(false);
     if (error) {
       setBookingMessage({ type: 'error', text: error.message });
+      showToast('error', error.message);
       return;
     }
 
     event.currentTarget.reset();
     setBookingMessage({ type: 'success', text: 'Booking request sent. We will contact you shortly.' });
+    showToast('success', 'Booking request sent successfully.');
   }
 
   async function handleReview(event: FormEvent<HTMLFormElement>) {
@@ -192,24 +232,27 @@ export default function HomePage() {
     setReviewSaving(true);
     setReviewMessage({ type: 'idle', text: '' });
     const form = new FormData(event.currentTarget);
-    const { error } = await supabase.from('testimonials').insert([{
+    const { error } = await insertReviewDraft({
       client_name: String(form.get('client_name') || '').trim(),
       quote: String(form.get('quote') || '').trim(),
       is_published: false,
-    }]);
+    });
 
     setReviewSaving(false);
     if (error) {
       setReviewMessage({ type: 'error', text: error.message });
+      showToast('error', error.message);
       return;
     }
 
     event.currentTarget.reset();
     setReviewMessage({ type: 'success', text: 'Thank you. Your review will appear after approval.' });
+    showToast('success', 'Review submitted successfully.');
   }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950" style={{ '--accent': accentColor } as CSSProperties}>
+      <Toasts toasts={toasts} />
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 px-6 backdrop-blur lg:px-12">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6">
           <a href="#" className="flex items-center gap-3">
@@ -379,7 +422,7 @@ export default function HomePage() {
 
               <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
                 <div className="flex items-center gap-4 text-slate-200">
-                  <MessageCircle className="h-6 w-6 text-[#d3b16e]" />
+                  <Mail className="h-6 w-6 text-[#d3b16e]" />
                   <div>
                     <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Email</p>
                     {settings?.email ? (
@@ -417,22 +460,22 @@ export default function HomePage() {
             <div className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-sm sm:p-6">
               <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Socials</p>
               <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                {settings?.facebook_link ? (
-                  <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950 p-3 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                    <FacebookIcon className="h-5 w-5" />
-                    <span className="sr-only">Facebook</span>
-                  </a>
-                ) : null}
                 {settings?.tiktok_link ? (
-                  <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950 p-3 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                    <TiktokIcon className="h-5 w-5" />
+                  <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                    <Music2 className="h-5 w-5" />
                     <span className="sr-only">TikTok</span>
                   </a>
                 ) : null}
-                {settings?.instagram_link ? (
-                  <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="group inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950 p-3 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                    <InstagramIcon className="h-5 w-5" />
-                    <span className="sr-only">Instagram</span>
+                {settings?.whatsapp_number ? (
+                  <a href={whatsappHref} target="_blank" rel="noreferrer" className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                    <MessageCircle className="h-5 w-5" />
+                    <span className="sr-only">WhatsApp</span>
+                  </a>
+                ) : null}
+                {settings?.email ? (
+                  <a href={`mailto:${settings.email}`} className="group inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                    <Mail className="h-5 w-5" />
+                    <span className="sr-only">Email</span>
                   </a>
                 ) : null}
               </div>
@@ -445,29 +488,29 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-6 text-center text-sm sm:text-base md:grid-cols-[1fr_auto_1fr] md:items-center md:text-left">
           <div className="flex flex-col items-center gap-3 md:items-start">
             <div className="flex items-center justify-center gap-3 md:justify-start">
-              {settings?.facebook_link ? (
-                <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <FacebookIcon className="h-5 w-5" />
-                  <span className="sr-only">Facebook</span>
-                </a>
-              ) : null}
               {settings?.tiktok_link ? (
                 <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <TiktokIcon className="h-5 w-5" />
+                  <Music2 className="h-5 w-5" />
                   <span className="sr-only">TikTok</span>
                 </a>
               ) : null}
-              {settings?.instagram_link ? (
-                <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
-                  <InstagramIcon className="h-5 w-5" />
-                  <span className="sr-only">Instagram</span>
+              {settings?.whatsapp_number ? (
+                <a href={whatsappHref} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <MessageCircle className="h-5 w-5" />
+                  <span className="sr-only">WhatsApp</span>
+                </a>
+              ) : null}
+              {settings?.email ? (
+                <a href={`mailto:${settings.email}`} className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <Mail className="h-5 w-5" />
+                  <span className="sr-only">Email</span>
                 </a>
               ) : null}
             </div>
           </div>
 
           <div className="flex flex-col items-center gap-2 md:items-center">
-            <p className="text-sm text-slate-400">© 2026 YOLO Photography. All rights reserved.</p>
+            <p className="text-sm text-slate-400">&copy; 2026 YOLO Photography. All rights reserved.</p>
             <a href="https://destinecreation.com" target="_blank" rel="noreferrer" className="text-sm font-semibold text-slate-200 transition hover:text-[#d3b16e]">Powered by Destine Creation</a>
           </div>
 
@@ -477,14 +520,23 @@ export default function HomePage() {
             </a>
             <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Stay connected</p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {settings?.facebook_link ? (
-                <a href={settings.facebook_link} target="_blank" rel="noreferrer" className="text-slate-300 transition hover:text-[#d3b16e]">Facebook</a>
-              ) : null}
-              {settings?.instagram_link ? (
-                <a href={settings.instagram_link} target="_blank" rel="noreferrer" className="text-slate-300 transition hover:text-[#d3b16e]">Instagram</a>
-              ) : null}
               {settings?.tiktok_link ? (
-                <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="text-slate-300 transition hover:text-[#d3b16e]">TikTok</a>
+                <a href={settings.tiktok_link} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <Music2 className="h-5 w-5" />
+                  <span className="sr-only">TikTok</span>
+                </a>
+              ) : null}
+              {settings?.whatsapp_number ? (
+                <a href={whatsappHref} target="_blank" rel="noreferrer" className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <MessageCircle className="h-5 w-5" />
+                  <span className="sr-only">WhatsApp</span>
+                </a>
+              ) : null}
+              {settings?.email ? (
+                <a href={`mailto:${settings.email}`} className="inline-flex h-11 w-11 items-center justify-center rounded-3xl border border-slate-800 bg-slate-900 text-slate-200 transition hover:border-[#d3b16e] hover:text-[#d3b16e]">
+                  <Mail className="h-5 w-5" />
+                  <span className="sr-only">Email</span>
+                </a>
               ) : null}
             </div>
           </div>

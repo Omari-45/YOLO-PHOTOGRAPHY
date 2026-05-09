@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabaseClient';
 
 const adminEmail = process.env.NEXT_PUBLIC_SUPABASE_ADMIN_EMAIL;
 const superAdminEmails = ['davidomari006@gmail.com'];
+const superAdminDeleteError = 'Action Denied: Cannot delete Super Admin.';
 const logoBucket = 'site-assets';
 const galleryBucket = 'portfolios';
 const brandAccentColor = '#334155';
@@ -228,6 +229,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
   const [activeSection, setActiveSection] = useState<AdminSection>('branding');
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
 
   const [logoUrl, setLogoUrl] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -263,6 +265,7 @@ export default function AdminPage() {
   const [editingServiceDraft, setEditingServiceDraft] = useState<ServiceDraft | null>(null);
 
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [deletingBookingId, setDeletingBookingId] = useState<number | null>(null);
 
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -293,6 +296,11 @@ export default function AdminPage() {
   const pageStyle = useMemo(
     () => ({ '--theme-accent': themeAccent } as CSSProperties),
     [themeAccent]
+  );
+  const isCurrentUserSuperAdmin = isProtectedSuperAdmin(currentUserEmail);
+  const visibleSectionItems = useMemo(
+    () => sectionItems.filter((section) => section.id !== 'users' || isCurrentUserSuperAdmin),
+    [isCurrentUserSuperAdmin]
   );
 
   useEffect(() => {
@@ -368,6 +376,7 @@ export default function AdminPage() {
 
       const sessionEmail = normalizeEmail(data.session?.user?.email || '');
       if (sessionEmail && allowedEmails.includes(sessionEmail)) {
+        setCurrentUserEmail(sessionEmail);
         setStatus('authorized');
         await Promise.all([loadSettings(), loadGallery(), loadTestimonials(), loadServices(), loadBookings(), loadUsers()]);
         return;
@@ -379,6 +388,13 @@ export default function AdminPage() {
 
     checkAccess();
   }, [router]);
+
+  useEffect(() => {
+    if (status === 'authorized' && activeSection === 'users' && !isCurrentUserSuperAdmin) {
+      setActiveSection('branding');
+      router.replace('/admin');
+    }
+  }, [activeSection, isCurrentUserSuperAdmin, router, status]);
 
   useEffect(() => {
     let previewUrl: string | null = null;
@@ -721,6 +737,32 @@ export default function AdminPage() {
     setBusyServiceId(null);
   }
 
+  async function handleDeleteBooking(id: number) {
+    const { data } = await supabase.auth.getSession();
+    const sessionEmail = normalizeEmail(data.session?.user?.email || '');
+    const allowedEmails = await getAllowedAdminEmails();
+
+    if (!sessionEmail || !allowedEmails.includes(sessionEmail)) {
+      showToast('error', 'Admin session is required.');
+      router.replace('/admin/login');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this booking?')) return;
+
+    setDeletingBookingId(id);
+    const { error } = await supabase.from('bookings').delete().eq('id', id);
+
+    if (error) {
+      showToast('error', error.message);
+    } else {
+      setBookings((current) => current.filter((booking) => booking.id !== id));
+      showToast('success', 'Booking deleted successfully.');
+    }
+
+    setDeletingBookingId(null);
+  }
+
   function handleStartEditService(service: Service) {
     setEditingServiceId(service.id);
     setEditingServiceDraft({
@@ -818,7 +860,8 @@ export default function AdminPage() {
 
   async function handleDeleteUser(user: User) {
     if (isProtectedSuperAdmin(user.email) || normalizeEmail(user.email) === normalizeEmail(adminEmail || '')) {
-      setUserMessage({ type: 'error', text: 'The super admin account cannot be removed here.' });
+      setUserMessage({ type: 'error', text: superAdminDeleteError });
+      showToast('error', superAdminDeleteError);
       return;
     }
 
@@ -867,7 +910,7 @@ export default function AdminPage() {
           </div>
 
           <nav className="mt-6 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
-            {sectionItems.map((section) => {
+            {visibleSectionItems.map((section) => {
               const active = activeSection === section.id;
               return (
                 <button
@@ -891,7 +934,7 @@ export default function AdminPage() {
             <header className="mb-8 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Protected Route /admin</p>
-                <h2 className="mt-2 text-3xl font-semibold">{sectionItems.find((item) => item.id === activeSection)?.label}</h2>
+                <h2 className="mt-2 text-3xl font-semibold">{visibleSectionItems.find((item) => item.id === activeSection)?.label}</h2>
               </div>
               <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">
                 {galleryItems.length} images / {testimonials.filter((item) => item.is_published).length} live reviews
@@ -969,7 +1012,7 @@ export default function AdminPage() {
             ) : null}
 
             {activeSection === 'bookings' ? (
-              <BookingsSection bookings={bookings} />
+              <BookingsSection bookings={bookings} deletingId={deletingBookingId} onDelete={handleDeleteBooking} />
             ) : null}
 
             {activeSection === 'contact' ? (
@@ -996,9 +1039,10 @@ export default function AdminPage() {
               />
             ) : null}
 
-            {activeSection === 'users' ? (
+            {activeSection === 'users' && isCurrentUserSuperAdmin ? (
               <UsersSection
                 users={users}
+                currentUserEmail={currentUserEmail}
                 userEmail={userEmail}
                 userMessage={userMessage}
                 savingUser={savingUser}
@@ -1445,7 +1489,15 @@ function ServicesSection({
   );
 }
 
-function BookingsSection({ bookings }: { bookings: Booking[] }) {
+function BookingsSection({
+  bookings,
+  deletingId,
+  onDelete,
+}: {
+  bookings: Booking[];
+  deletingId: number | null;
+  onDelete: (id: number) => void;
+}) {
   return (
     <div className="space-y-4">
       {bookings.length ? bookings.map((booking) => (
@@ -1459,6 +1511,17 @@ function BookingsSection({ bookings }: { bookings: Booking[] }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-400">{new Date(booking.created_at).toLocaleDateString()}</p>
+              <button
+                type="button"
+                onClick={() => onDelete(booking.id)}
+                disabled={deletingId === booking.id}
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label={`Delete booking for ${booking.client_name}`}
+                title="Delete booking"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deletingId === booking.id ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </article>
@@ -1575,6 +1638,7 @@ function ContactSection({
 
 function UsersSection({
   users,
+  currentUserEmail,
   userEmail,
   userMessage,
   savingUser,
@@ -1584,6 +1648,7 @@ function UsersSection({
   onDelete,
 }: {
   users: User[];
+  currentUserEmail: string;
   userEmail: string;
   userMessage: MessageState;
   savingUser: boolean;
@@ -1592,6 +1657,10 @@ function UsersSection({
   onCreate: () => void;
   onDelete: (user: User) => void;
 }) {
+  if (!isProtectedSuperAdmin(currentUserEmail)) {
+    return null;
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

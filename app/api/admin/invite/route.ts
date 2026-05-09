@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Only authorized admins can invite new admins.' }, { status: 403 });
   }
 
+  if (requesterEmail !== normalizeEmail(ownerEmail)) {
+    return NextResponse.json({ error: 'Only the Super Admin can manage admin users.' }, { status: 403 });
+  }
+
   const nextEmails = Array.from(new Set([...allowedEmails, invitedEmail]));
   const { error: saveError } = settings?.id
     ? await adminClient.from('site_settings').update({ admin_emails: nextEmails, updated_at: new Date().toISOString() }).eq('id', settings.id)

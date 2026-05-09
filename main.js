@@ -105,11 +105,12 @@ async function deleteReview(id) {
 
 // Helper functions for role checking
 function isSuperAdmin(email) {
-  return email === SUPERADMIN_EMAIL;
+  return String(email || '').trim().toLowerCase() === SUPERADMIN_EMAIL;
 }
 
 function isAdmin(email) {
-  return email === ADMIN_EMAIL || isSuperAdmin(email);
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  return normalizedEmail === ADMIN_EMAIL || isSuperAdmin(normalizedEmail);
 }
 
 function canDeleteUser(currentUserEmail, targetUserEmail) {
@@ -214,8 +215,9 @@ async function loadAdminPage() {
 async function loadDashboardPage() {
   const session = await supabase.auth.getSession();
   const allowedEmails = await getAllowedEmails();
+  const currentUserEmail = session.data?.session?.user?.email || '';
 
-  if (!session.data?.session?.user?.email || !allowedEmails.includes(session.data.session.user.email)) {
+  if (!currentUserEmail || !allowedEmails.includes(currentUserEmail)) {
     window.location.href = '/admin.html';
     return;
   }
@@ -294,6 +296,16 @@ async function loadDashboardPage() {
   const addAdminMessage = $('#addAdminMessage');
   const adminUsersList = $('#adminUsersList');
 
+  if (!isSuperAdmin(currentUserEmail)) {
+    [...sectionButtons, ...bottomNavButtons]
+      .filter((button) => button.dataset.section === 'admins')
+      .forEach((button) => {
+        button.style.display = 'none';
+        button.setAttribute('aria-hidden', 'true');
+      });
+    if (adminsPanel) adminsPanel.style.display = 'none';
+  }
+
   // Testimonials workflow
   const testimonialNameInput = $('#testimonialNameInput');
   const testimonialRoleInput = $('#testimonialRoleInput');
@@ -367,7 +379,7 @@ async function loadDashboardPage() {
     // Recent bookings
     const { data: bookings, error: bookingError } = await supabase
       .from('bookings')
-      .select('client_name,service_type,event_location,event_date,created_at')
+      .select('id,client_name,service_type,event_location,event_date,created_at')
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -386,11 +398,19 @@ async function loadDashboardPage() {
         <p class="text-sm font-semibold text-slate-900">${escapeHtml(booking.client_name)}</p>
         <p class="text-xs text-slate-600">${booking.service_type} • ${booking.event_location}</p>
         <p class="text-xs text-slate-500">${escapeHtml(new Date(booking.event_date).toLocaleDateString())}</p>
+        <button type="button" onclick="handleDeleteBooking(${booking.id})" class="mt-2 inline-flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700">
+          Delete
+        </button>
       </div>
     `).join('');
   }
 
   function activateAdminSection(sectionName) {
+    if (sectionName === 'admins' && !isSuperAdmin(currentUserEmail)) {
+      window.location.href = '/admin.html';
+      return;
+    }
+
     adminPanels.forEach(panel => {
       panel.style.display = panel.id === sectionName ? 'block' : 'none';
     });
@@ -701,6 +721,11 @@ async function loadDashboardPage() {
     const session = await supabase.auth.getSession();
     const currentUserEmail = session.data?.session?.user?.email;
 
+    if (isSuperAdmin(email)) {
+      alert('Action Denied: Cannot delete Super Admin.');
+      return;
+    }
+
     if (!canDeleteUser(currentUserEmail, email)) {
       alert('You cannot delete this admin user.');
       return;
@@ -731,8 +756,32 @@ async function loadDashboardPage() {
     await fetchAdminUsers();
   }
 
+  async function handleDeleteBooking(id) {
+    const session = await supabase.auth.getSession();
+    const adminEmail = session.data?.session?.user?.email || '';
+    const allowedEmails = await getAllowedEmails();
+
+    if (!adminEmail || !allowedEmails.includes(adminEmail)) {
+      alert('Admin session is required.');
+      window.location.href = '/admin.html';
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this booking?')) return;
+
+    const { error } = await supabase.from('bookings').delete().eq('id', id);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await fetchAnalytics();
+    alert('Booking deleted successfully.');
+  }
+
   // Make deleteAdminUser global
   window.deleteAdminUser = deleteAdminUser;
+  window.handleDeleteBooking = handleDeleteBooking;
   window.toggleTestimonialPublish = toggleTestimonialPublish;
   window.deleteTestimonial = deleteTestimonial;
 
